@@ -1,0 +1,9 @@
+{
+  "markdown.marp.themes": [
+    ".cursor/rules/basic/templates/marp-themes/explaza.css",
+    ".cursor/rules/basic/templates/marp-themes/modern-brown.css"
+  ]
+}
+
+
+
