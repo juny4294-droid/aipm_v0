@@ -123,6 +123,21 @@ Cursorの新規ウィンドウから簡単にセットアップできます：
 
 ### 手動セットアップ
 
+#### セットアップスクリプトの実行
+
+```bash
+# 基本的な使用方法
+./setup_workspace_simple.sh
+
+# 設定ファイルを指定する場合
+./setup_workspace_simple.sh setup_config.sh
+
+# 特定のディレクトリに作成する場合
+./setup_workspace_simple.sh /path/to/workspace
+
+# ディレクトリと設定ファイルの両方を指定する場合
+./setup_workspace_simple.sh /path/to/workspace setup_config.sh
+```
 
 ### 初期設定
 
@@ -191,6 +206,59 @@ Cursorの新規ウィンドウから簡単にセットアップできます：
 現在利用可能な背景画像:
 - `bg_explaza.png`: explazaテーマ用の青系背景
 - `bg_brown.png`: modern-brownテーマ用の茶系背景
+
+### セットアップスクリプトの実行方法
+
+#### 基本的な実行方法
+
+```bash
+# 基本的な使用方法
+./setup_workspace_simple.sh
+
+# 設定ファイルを指定する場合
+./setup_workspace_simple.sh setup_config.sh
+
+```
+
+#### セットアップスクリプトの主な機能
+
+`setup_workspace_simple.sh` スクリプトを使用すると、以下の作業が自動的に行われます：
+
+1. **基本ディレクトリ構造の作成**
+   - Flow, Stock, Archived などの基本フォルダ
+   - ルールファイル用の .cursor/rules フォルダ
+   - プログラム用フォルダ Stock/programs
+
+2. **Flow内の年月日フォルダ作成**
+   - 現在の日付で Flow/YYYYMM/YYYY-MM-DD 形式のフォルダ作成
+
+3. **各種リポジトリのクローン**
+   - ルールリポジトリ（.cursor/rules/basic など）
+   - スクリプトリポジトリ（scripts ディレクトリ）
+   - プログラムリポジトリ（Stock/programs 配下）
+
+4. **設定ファイルの作成**
+   - ユーザー設定ファイル（scripts_public/config/user_config.yaml）
+   - .gitignore ファイル
+
+5. **サンプルファイルの作成**
+   - 日次タスクサンプル
+   - Flow ディレクトリ用 README
+
+#### 設定ファイルについて
+
+`setup_config.sh` ファイルを使用することで、セットアップをカスタマイズできます：
+
+```bash
+# 設定ファイルをコピーして編集
+cp setup_config.sh my_config.sh
+# my_config.sh を編集して個人設定を調整
+
+# カスタム設定でセットアップ実行
+./setup_workspace_simple.sh ~/my_workspace my_config.sh
+```
+
+
 
 ### User Rules 
 
