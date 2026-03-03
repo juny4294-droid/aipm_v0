@@ -26,6 +26,8 @@ dirs:
   # ─ Stock（確定版ドキュメント）
   stock:          "{{root}}/Stock"
   stock_templates:"{{dirs.stock}}/shared/templates"
+  # プロジェクト共通の添付・資料（全プロジェクトで参照）
+  shared_attachments: "{{dirs.stock}}/shared/attachments"
   
   # ─ プログラム/プロジェクト構造
   programs:       "{{dirs.stock}}/programs"
@@ -128,8 +130,10 @@ patterns:
   program_dir:        "{{dirs.programs}}/{{program_id}}"
   project_dir:        "{{patterns.program_dir}}/projects/{{project_id}}"
   docs_root:          "{{patterns.project_dir}}/documents"
-  # 添付ファイル・資料格納（プロジェクト共通）
+  # 添付ファイル・資料格納（プロジェクト別）
   attachments_dir:    "{{patterns.project_dir}}/attachments"
+  # プロジェクト共通の添付・資料（全プロジェクトで参照）
+  shared_attachments_dir: "{{dirs.shared_attachments}}"
   
   # プロセス別フォルダ
   doc_initiating:     "{{patterns.docs_root}}/1_initiating"
