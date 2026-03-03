@@ -128,6 +128,8 @@ patterns:
   program_dir:        "{{dirs.programs}}/{{program_id}}"
   project_dir:        "{{patterns.program_dir}}/projects/{{project_id}}"
   docs_root:          "{{patterns.project_dir}}/documents"
+  # 添付ファイル・資料格納（プロジェクト共通）
+  attachments_dir:    "{{patterns.project_dir}}/attachments"
   
   # プロセス別フォルダ
   doc_initiating:     "{{patterns.docs_root}}/1_initiating"
