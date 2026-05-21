@@ -30,7 +30,7 @@ TBD
 
 - **同期対象**: 上記ページのみ（子ページ・参照リンク先は同期しない）
 - **最終同期**: 2026-05-20
-- **Notion反映**: 未（依頼時に同期）
+- **Notion反映**: 反映済（2026-05-20 — [Product部門方針](https://www.notion.so/medup/Product-38fc2423e1d94e39a2c77b747d04b89e) のみ）
 - 正本は Notion。再同期は「Notion から Product部門方針を再同期して」で依頼可。
 
 ## ドキュメント配置（PMBOKフェーズ）

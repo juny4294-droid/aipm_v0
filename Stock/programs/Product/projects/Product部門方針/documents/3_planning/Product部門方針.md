@@ -2,7 +2,7 @@
 
 > **同期元（正本）**: [Notion — Product部門方針](https://www.notion.so/medup/Product-38fc2423e1d94e39a2c77b747d04b89e)  
 > **最終同期**: 2026-05-20  
-> **Notion反映**: 反映済（2026-05-20 — §2 Mission/Vision・二層・まとめ）
+> **Notion反映**: 反映済（2026-05-20 — §2 探索/継続・一言・まとめ）
 
 ---
 
