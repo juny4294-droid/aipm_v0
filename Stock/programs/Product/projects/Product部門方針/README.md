@@ -4,6 +4,12 @@
 
 Product部門の方針・運用指針・方向性を整理・文書化するプロジェクトです。
 
+## 部門Vision
+
+顧客・業務に深く入り、プロダクトで課題解決までやり切る Product 部門。AI 駆動の開発環境を部門共通で整え、成長（**FDE**）と既存 foro の維持・改善（**foroチーム**）の両方に責任を持つ。
+
+詳細: [Product部門方針.md §2-0](documents/3_planning/Product部門方針.md)
+
 ## 開始日
 
 2026-05-20
@@ -23,7 +29,8 @@ TBD
 | Product部門方針 | [Notion](https://www.notion.so/medup/Product-38fc2423e1d94e39a2c77b747d04b89e) | [Product部門方針.md](documents/3_planning/Product部門方針.md) |
 
 - **同期対象**: 上記ページのみ（子ページ・参照リンク先は同期しない）
-- **最終同期**: 2026-05-20（Notion MCP）
+- **最終同期**: 2026-05-20
+- **Notion反映**: 未（依頼時に同期）
 - 正本は Notion。再同期は「Notion から Product部門方針を再同期して」で依頼可。
 
 ## ドキュメント配置（PMBOKフェーズ）
