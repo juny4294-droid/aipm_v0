@@ -29,8 +29,8 @@ TBD
 | Product部門方針 | [Notion](https://www.notion.so/medup/Product-38fc2423e1d94e39a2c77b747d04b89e) | [Product部門方針.md](documents/3_planning/Product部門方針.md) |
 
 - **同期対象**: 上記ページのみ（子ページ・参照リンク先は同期しない）
-- **最終同期**: 2026-05-22（Notion → ローカル）
-- **Notion反映**: 正本（Notion優先）。§1-2〜1-8 深掘りはローカルのみ
+- **最終同期**: 2026-05-25（ローカル → Notion 反映）
+- **Notion反映**: §2-2-1〜2-2-3（§1-2〜1-8 深掘りはローカルのみ）
 - 正本は Notion。再同期は「Notion から Product部門方針を再同期して」で依頼可。
 
 ## ドキュメント配置（PMBOKフェーズ）
