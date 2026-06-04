@@ -29,7 +29,7 @@ TBD
 | Product部門方針 | [Notion](https://www.notion.so/medup/Product-38fc2423e1d94e39a2c77b747d04b89e) | [Product部門方針.md](documents/3_planning/Product部門方針.md) |
 
 - **同期対象**: 上記ページのみ（子ページ・参照リンク先は同期しない）
-- **最終同期**: 2026-05-27（ローカル → Notion）
+- **最終同期**: 2026-06-02（Notion → ローカル）
 - **Notion反映**: §2-3 テックリードのミッション
 - 正本は Notion。再同期は「Notion から Product部門方針を再同期して」で依頼可。
 
