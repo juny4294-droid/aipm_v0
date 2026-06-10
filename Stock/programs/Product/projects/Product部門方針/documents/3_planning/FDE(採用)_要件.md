@@ -5,7 +5,8 @@
 > **参照**: [Product部門方針](https://www.notion.so/38fc2423e1d94e39a2c77b747d04b89e)（§2-2）、[CS/PS求人ページ](https://www.notion.so/36d1da5a7f3b808aae0efc5b27d18479)  
 > **最終同期**: Notion（2026-06-04）  
 > **体裁**: [CS/PS採用](https://www.notion.so/36d1da5a7f3b808aae0efc5b27d18479)・[シニアエンジニア採用](https://www.notion.so/26a1da5a7f3b80499011c0fb832ed254) と同様（🔶見出し・緑/下線・gray callout・3カラムヒーロー等）。Notion 上で確認すること。  
-> **Notion掲載範囲**: 「その他情報・参考リンク」・応募導線まで。以下「下書き（Notion未掲載）」はローカルのみ保持。
+> **Notion掲載範囲**: 「その他情報・参考リンク」・応募導線まで。以下「下書き（Notion未掲載）」はローカルのみ保持。  
+> **ファーストコンタクト（転職サイト）**: [FDE(採用)_ファーストコンタクト.md](./FDE(採用)_ファーストコンタクト.md)
 
 採用JDのローカルコピー（装飾は Notion 正本）。求人本文の編集は Notion を正本とする。面接・90日などは下書きとして本ファイルに残す。
 
