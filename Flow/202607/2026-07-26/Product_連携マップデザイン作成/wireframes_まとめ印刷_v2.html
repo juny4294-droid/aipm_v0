@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ワイヤー: 逆紹介候補のまとめ印刷 v2（ヒアリング反映）</title>
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --muted: #5c5c5c;
+      --line: #c8c8c8;
+      --bg: #f3f3f1;
+      --paper: #fff;
+      --accent: #1f4b7a;
+      --accent-soft: #e8eef4;
+      --new: #0a7a3e;
+      --new-soft: #e6f4ec;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.45;
+    }
+    header.app {
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header.app h1 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+    header.app p { margin: 0; color: var(--muted); font-size: 13px; }
+    nav.tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 12px 24px 0;
+    }
+    nav.tabs button {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    nav.tabs button.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    nav.tabs button .badge-new {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 2px;
+      background: var(--new);
+      color: #fff;
+      vertical-align: middle;
+    }
+    nav.tabs button.active .badge-new {
+      background: #fff;
+      color: var(--new);
+    }
+    main { padding: 16px 24px 48px; max-width: 1100px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .note {
+      background: var(--accent-soft);
+      border-left: 3px solid var(--accent);
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .note.new {
+      background: var(--new-soft);
+      border-left-color: var(--new);
+    }
+    .wire {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .chrome {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+      background: #fafafa;
+    }
+    .chrome .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--line);
+    }
+    .layout-search {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 560px;
+    }
+    .filter {
+      border-right: 1px solid var(--line);
+      padding: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .filter .box {
+      border: 1px dashed var(--line);
+      padding: 10px;
+      margin-bottom: 8px;
+      min-height: 40px;
+    }
+    .results { display: flex; flex-direction: column; position: relative; }
+    .result-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .result-tabs span {
+      padding: 10px 16px;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+    }
+    .result-tabs span.on {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+    .bulk-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--new-soft);
+      font-size: 12px;
+    }
+    .bulk-bar button {
+      border: 1px solid var(--new);
+      background: #fff;
+      color: var(--new);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .bulk-bar button:hover { background: var(--new); color: #fff; }
+    .bulk-bar .hint { color: var(--muted); }
+    .list { padding: 0 0 72px; max-height: 440px; overflow: auto; }
+    .row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 8px;
+      align-items: start;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .row .name { font-weight: 700; font-size: 14px; }
+    .row .meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .row .detail {
+      font-size: 12px;
+      color: var(--accent);
+      text-decoration: underline;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .select-bar {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 13px;
+    }
+    .select-bar button {
+      border: 0;
+      background: #fff;
+      color: var(--ink);
+      padding: 8px 14px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .select-bar .ghost {
+      background: transparent;
+      color: #fff;
+      border: 1px solid #888;
+      font-weight: 500;
+      margin-right: 8px;
+    }
+    .map-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      min-height: 480px;
+    }
+    .side-list { border-right: 1px solid var(--line); padding-bottom: 64px; position: relative; }
+    .side-list .list { max-height: 360px; padding-bottom: 0; }
+    .map-fake {
+      background:
+        linear-gradient(#e9ece8 1px, transparent 1px) 0 0 / 32px 32px,
+        linear-gradient(90deg, #e9ece8 1px, transparent 1px) 0 0 / 32px 32px,
+        #f7f8f5;
+      position: relative;
+      min-height: 480px;
+    }
+    .pin {
+      position: absolute;
+      width: 22px; height: 22px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      background: var(--accent);
+      border: 2px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .pin span { transform: rotate(45deg); }
+    .pin.selected { background: #0a7a3e; }
+    .pin.p1 { top: 18%; left: 40%; }
+    .pin.p2 { top: 28%; left: 52%; }
+    .pin.p3 { top: 36%; left: 44%; }
+    .pin.p4 { top: 48%; left: 58%; }
+    .pin.p5 { top: 42%; left: 34%; }
+    .print-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .print-toolbar .seg {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .print-toolbar .seg button {
+      border: 0;
+      background: var(--paper);
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      border-right: 1px solid var(--line);
+    }
+    .print-toolbar .seg button:last-child { border-right: 0; }
+    .print-toolbar .seg button.on {
+      background: var(--accent);
+      color: #fff;
+    }
+    .print-toolbar .primary {
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .print-toolbar .ghost-btn {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .print-sheet {
+      width: 210mm;
+      max-width: 100%;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 14mm 12mm;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 8px;
+    }
+    .print-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 6px;
+      font-size: 13px;
+    }
+    .print-head strong { font-size: 16px; }
+    .cards-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+      min-height: 0;
+    }
+    .card {
+      border: 1px solid var(--line);
+      padding: 10px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .card h3 {
+      margin: 0;
+      font-size: 13px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 4px;
+    }
+    .card .tel { font-size: 14px; font-weight: 700; }
+    .card .mapbox {
+      border: 1px dashed var(--line);
+      background: #f7f8f5;
+      min-height: 70px;
+      display: grid;
+      grid-template-columns: 1fr 48px;
+      gap: 6px;
+      align-items: center;
+      padding: 6px;
+      color: var(--muted);
+    }
+    .qr {
+      width: 48px; height: 48px;
+      flex-shrink: 0;
+      border: 1px solid var(--line);
+      background:
+        repeating-linear-gradient(0deg, #111 0 2px, #fff 2px 4px),
+        repeating-linear-gradient(90deg, #111 0 2px, #fff 2px 4px);
+      background-blend-mode: multiply;
+      opacity: 0.85;
+    }
+    .qr.sm { width: 40px; height: 40px; }
+    .cards-10 {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-height: 0;
+    }
+    .row10 {
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 4px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .row10 .num {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+      text-align: center;
+    }
+    .row10 .name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+    .row10 .addr,
+    .row10 .tel {
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .row10 .tel { font-weight: 700; }
+    .print-foot {
+      border-top: 1px solid var(--line);
+      padding-top: 6px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .diff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .diff-grid article {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      padding: 14px;
+      font-size: 13px;
+    }
+    .diff-grid h3 { margin: 0 0 8px; font-size: 14px; }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 2px;
+      margin-bottom: 8px;
+    }
+    .tag.new {
+      background: var(--new-soft);
+      color: var(--new);
+    }
+    .hidden { display: none !important; }
+    @media print {
+      header.app, nav.tabs, .note, .print-toolbar, .no-print { display: none !important; }
+      main { padding: 0; max-width: none; }
+      .panel { display: none !important; }
+      .panel.active { display: block !important; }
+      .print-sheet { border: 0; width: auto; min-height: auto; }
+      body { background: #fff; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app">
+    <h1>ワイヤー案 — 逆紹介候補のまとめ印刷 v2</h1>
+    <p>foro 連携マップ / ヒアリング反映ドラフト / 2026-07-26</p>
+  </header>
+
+  <nav class="tabs" class="no-print">
+    <button type="button" class="active" data-panel="changes">0. 今回の変更</button>
+    <button type="button" data-panel="list">1. リストで選択 <span class="badge-new">NEW</span></button>
+    <button type="button" data-panel="map">2. 地図で選択</button>
+    <button type="button" data-panel="print">3. サマリー印刷 <span class="badge-new">10件</span></button>
+    <button type="button" data-panel="discuss">4. 議論メモ</button>
+  </nav>
+
+  <main>
+    <section id="panel-changes" class="panel active">
+      <div class="note new">ヒアリング結果への対応（ワイヤー段階）。最終は4件/10件のどちらかに寄せる想定で、一旦両方置く。</div>
+      <div class="diff-grid">
+        <article>
+          <span class="tag new">NEW</span>
+          <h3>上位10件に一括✓</h3>
+          <p>検索結果（近い順）の上位10件を一括チェック。新東京の住所検索運用向け。</p>
+        </article>
+        <article>
+          <span class="tag new">NEW</span>
+          <h3>サマリー10件/頁</h3>
+          <p>地図なし・QRあり。医療機関名 / 住所 / 電話のみ。フォントは落とさない。</p>
+        </article>
+        <article>
+          <span class="tag">変更なし</span>
+          <h3>サマリー4件/頁</h3>
+          <p>既存どおり。地図（縮小）+ QR + アクセス要約など。</p>
+        </article>
+        <article>
+          <span class="tag">併存（既存）</span>
+          <h3>一括印刷（単票束）</h3>
+          <p>高齢層向け。N施設 = N枚。プレビューで形式切替想定（本ワイヤーではサマリー比較が主）。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="panel-list" class="panel">
+      <div class="note new">NEW: リスト上部に「上位10件に一括✓」。住所検索・近い順の現場向け。個別チェックも併用可。</div>
+      <div class="wire">
+        <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>紹介先検索 — foro 連携マップ</div>
+        <div class="layout-search">
+          <aside class="filter">
+            <div class="box">検索条件（既存）</div>
+            <div class="box">住所検索（新東京で主利用）</div>
+            <div class="box">並び: 近い順</div>
+            <div class="box">検索ボタン</div>
+          </aside>
+          <div class="results">
+            <div class="result-tabs">
+              <span class="on">リスト</span>
+              <span>地図</span>
+            </div>
+            <div class="bulk-bar" style="justify-content:flex-start;gap:10px;">
+              <label style="display:inline-flex;align-items:center;gap:8px;font-weight:700;cursor:pointer;">
+                <input type="checkbox" id="btn-top10" checked />
+                上位10件に一括
+              </label>
+              <span class="hint">近い順の上から最大10件（行チェックと同型）</span>
+            </div>
+            <div class="list" id="facility-list">
+              <!-- filled by script -->
+            </div>
+            <div class="select-bar">
+              <span id="select-count">0件選択中</span>
+              <span>
+                <button type="button" data-go="print">まとめて印刷</button>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-map" class="panel">
+      <div class="note">地図タブでも同じ選択状態を共有。サイドリストにも一括✓を置く案。</div>
+      <div class="wire">
+        <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>紹介先検索 — 地図タブ</div>
+        <div class="map-layout results">
+          <div class="side-list">
+            <div class="result-tabs">
+              <span>リスト</span>
+              <span class="on">地図</span>
+            </div>
+            <div class="bulk-bar" style="border-top:0;justify-content:flex-start;">
+              <label style="display:inline-flex;align-items:center;gap:8px;font-weight:700;cursor:pointer;">
+                <input type="checkbox" id="btn-top10-map" checked />
+                上位10件に一括
+              </label>
+            </div>
+            <div class="list" id="facility-list-map"></div>
+            <div class="select-bar">
+              <span id="select-count-map">0件選択中</span>
+              <button type="button" data-go="print">まとめて印刷</button>
+            </div>
+          </div>
+          <div class="map-fake">
+            <div class="pin selected p1"><span>1</span></div>
+            <div class="pin selected p2"><span>2</span></div>
+            <div class="pin selected p3"><span>3</span></div>
+            <div class="pin selected p4"><span>4</span></div>
+            <div class="pin selected p5"><span>5</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-print" class="panel">
+      <div class="note new no-print">サマリー印刷の比較用。4件版は変更なし / 10件版は地図なし・QRあり・名住所TELのみ。最終はどちらかに寄せる。</div>
+      <div class="print-toolbar no-print">
+        <div class="seg" role="group" aria-label="印刷形式">
+          <button type="button" class="on" data-format="4">サマリー 4件/頁</button>
+          <button type="button" data-format="10">サマリー 10件/頁</button>
+        </div>
+        <button type="button" class="primary" onclick="window.print()">このプレビューを印刷（デモ）</button>
+        <button type="button" class="ghost-btn" data-go="list">選択画面に戻る</button>
+      </div>
+
+      <!-- 4件版: 変更なし -->
+      <div id="print-4" class="print-sheet">
+        <div class="print-head">
+          <strong>紹介候補のご案内</strong>
+          <span>印刷日 2026/07/26　｜　4件/頁</span>
+        </div>
+        <div class="cards-4">
+          <div class="card">
+            <h3>1. ○○内科クリニック</h3>
+            <div>
+              <div class="tel">03-0000-0001</div>
+              <div>東京都港区芝…</div>
+              <div>駐車場あり / 予約診療あり</div>
+              <div>最寄: JR田町駅 徒歩5分</div>
+            </div>
+            <div class="mapbox">
+              <div>地図（縮小）</div>
+              <div class="qr" title="Google Maps QR"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>2. △△医院</h3>
+            <div>
+              <div class="tel">03-0000-0002</div>
+              <div>東京都品川区…</div>
+              <div>駐車場なし / 予約診療あり</div>
+              <div>最寄: 品川駅 バス10分</div>
+            </div>
+            <div class="mapbox">
+              <div>地図（縮小）</div>
+              <div class="qr" title="Google Maps QR"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>3. □□メディカル</h3>
+            <div>
+              <div class="tel">03-0000-0003</div>
+              <div>東京都大田区…</div>
+              <div>駐車場あり / 予約診療なし</div>
+              <div>最寄: 蒲田駅 徒歩8分</div>
+            </div>
+            <div class="mapbox">
+              <div>地図（縮小）</div>
+              <div class="qr" title="Google Maps QR"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>4. ◇◇診療所</h3>
+            <div>
+              <div class="tel">03-0000-0004</div>
+              <div>東京都目黒区…</div>
+              <div>駐車場あり / 予約診療あり</div>
+              <div>最寄: 目黒駅 徒歩6分</div>
+            </div>
+            <div class="mapbox">
+              <div>地図（縮小）</div>
+              <div class="qr" title="Google Maps QR"></div>
+            </div>
+          </div>
+        </div>
+        <div class="print-foot">
+          最新の診療時間や休診日は、事前に医療機関へご確認ください。／ 逆紹介数などの院内向け情報は掲載しません。
+        </div>
+      </div>
+
+      <!-- 10件版: 地図なし / QRあり / 名住所TEL -->
+      <div id="print-10" class="print-sheet hidden">
+        <div class="print-head">
+          <strong>紹介候補のご案内</strong>
+          <span>印刷日 2026/07/26　｜　10件/頁（地図なし）</span>
+        </div>
+        <div class="cards-10" id="cards-10">
+          <!-- filled by script -->
+        </div>
+        <div class="print-foot">
+          詳細は各施設のWebサイト等でもご確認ください。／ 地図アプリは右のQRから開けます。／ 最新の診療時間・休診は事前にご確認ください。
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-discuss" class="panel">
+      <div class="note">ワイヤーで両方見せて決める論点。</div>
+      <div class="wire" style="padding:16px;font-size:14px;">
+        <ol>
+          <li><strong>4件 vs 10件</strong> — 最終はどちらか。密度・フォント・高齢層への渡しやすさ</li>
+          <li><strong>10件版のQR配置</strong> — 行右端で足りるか。地図なしで迷子にならないか</li>
+          <li><strong>上位10件一括✓</strong> — 件数は固定10でよいか（検索結果が10未満のとき）</li>
+          <li><strong>サマリー vs 一括（単票束）</strong> — 若年/高齢の使い分けコピーを画面に出すか</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const FACILITIES = [
+      { name: "○○内科クリニック", addr: "東京都港区芝…", tel: "03-0000-0001", dist: "0.8km", access: "JR田町駅 徒歩5分", parking: "あり" },
+      { name: "△△医院", addr: "東京都品川区…", tel: "03-0000-0002", dist: "1.2km", access: "品川駅 バス10分", parking: "なし" },
+      { name: "□□メディカル", addr: "東京都大田区…", tel: "03-0000-0003", dist: "1.5km", access: "蒲田駅 徒歩8分", parking: "あり" },
+      { name: "◇◇診療所", addr: "東京都目黒区…", tel: "03-0000-0004", dist: "1.9km", access: "目黒駅 徒歩6分", parking: "あり" },
+      { name: "☆☆クリニック", addr: "東京都渋谷区…", tel: "03-0000-0005", dist: "2.1km", access: "渋谷駅 徒歩12分", parking: "なし" },
+      { name: "◎◎内科", addr: "東京都中央区…", tel: "03-0000-0006", dist: "2.4km", access: "銀座駅 徒歩7分", parking: "あり" },
+      { name: "▲▲医院", addr: "東京都江東区…", tel: "03-0000-0007", dist: "2.8km", access: "豊洲駅 徒歩5分", parking: "あり" },
+      { name: "▼▼メディカル", addr: "東京都墨田区…", tel: "03-0000-0008", dist: "3.1km", access: "押上駅 徒歩9分", parking: "なし" },
+      { name: "◆◆診療所", addr: "東京都文京区…", tel: "03-0000-0009", dist: "3.5km", access: "春日駅 徒歩4分", parking: "あり" },
+      { name: "■ ■医院", addr: "東京都新宿区…", tel: "03-0000-0010", dist: "3.8km", access: "新宿駅 徒歩15分", parking: "あり" },
+      { name: "●●クリニック", addr: "東京都豊島区…", tel: "03-0000-0011", dist: "4.2km", access: "池袋駅 徒歩10分", parking: "なし" },
+      { name: "◆内科センター", addr: "東京都台東区…", tel: "03-0000-0012", dist: "4.6km", access: "上野駅 徒歩8分", parking: "あり" },
+    ];
+
+    const listEl = document.getElementById("facility-list");
+    const listMapEl = document.getElementById("facility-list-map");
+    const countEl = document.getElementById("select-count");
+    const countMapEl = document.getElementById("select-count-map");
+    const cards10 = document.getElementById("cards-10");
+
+    function renderLists() {
+      listEl.innerHTML = FACILITIES.map((f, i) => `
+        <div class="row">
+          <input type="checkbox" class="fac-check" data-i="${i}" aria-label="選択" />
+          <div>
+            <div class="name">${i + 1}. ${f.name}</div>
+            <div class="meta">${f.addr} / 距離 ${f.dist}</div>
+          </div>
+          <span class="detail">詳細</span>
+        </div>
+      `).join("");
+      listMapEl.innerHTML = FACILITIES.slice(0, 8).map((f, i) => `
+        <div class="row">
+          <input type="checkbox" class="fac-check" data-i="${i}" aria-label="選択" />
+          <div>
+            <div class="name">${f.name}</div>
+            <div class="meta">距離 ${f.dist}</div>
+          </div>
+        </div>
+      `).join("");
+      document.querySelectorAll(".fac-check").forEach((cb) => {
+        cb.addEventListener("change", syncCounts);
+      });
+    }
+
+    function syncCounts() {
+      // Use list panel checkboxes as source of truth for count display
+      const checked = document.querySelectorAll("#facility-list .fac-check:checked").length;
+      countEl.textContent = `${checked}件選択中`;
+      countMapEl.textContent = `${checked}件選択中`;
+    }
+
+    function selectTop10() {
+      document.querySelectorAll("#facility-list .fac-check").forEach((cb, i) => {
+        cb.checked = i < 10;
+      });
+      document.querySelectorAll("#facility-list-map .fac-check").forEach((cb, i) => {
+        cb.checked = i < 10;
+      });
+      syncCounts();
+    }
+
+    function clearAll() {
+      document.querySelectorAll(".fac-check").forEach((cb) => { cb.checked = false; });
+      syncCounts();
+    }
+
+    cards10.innerHTML = FACILITIES.slice(0, 10).map((f, i) => `
+      <div class="row10">
+        <div class="num">${i + 1}</div>
+        <div>
+          <div class="name">${f.name}</div>
+          <div class="addr">${f.addr}</div>
+          <div class="tel">${f.tel}</div>
+          <div class="addr">交通アクセス: ${f.access}</div>
+          <div class="addr">駐車場: ${f.parking}</div>
+        </div>
+        <div class="qr sm" title="Google Maps QR"></div>
+      </div>
+    `).join("");
+
+    renderLists();
+    selectTop10();
+
+    function onTop10Toggle(e) {
+      if (e.target.checked) selectTop10();
+      else clearAll();
+      document.getElementById("btn-top10").checked = e.target.checked;
+      document.getElementById("btn-top10-map").checked = e.target.checked;
+    }
+    document.getElementById("btn-top10").addEventListener("change", onTop10Toggle);
+    document.getElementById("btn-top10-map").addEventListener("change", onTop10Toggle);
+
+    const buttons = document.querySelectorAll("nav.tabs button");
+    const panels = document.querySelectorAll(".panel");
+    function show(id) {
+      panels.forEach((p) => p.classList.toggle("active", p.id === "panel-" + id));
+      buttons.forEach((b) => b.classList.toggle("active", b.dataset.panel === id));
+    }
+    buttons.forEach((b) => b.addEventListener("click", () => show(b.dataset.panel)));
+    document.querySelectorAll("[data-go]").forEach((el) => {
+      el.addEventListener("click", () => show(el.getAttribute("data-go")));
+    });
+
+    const print4 = document.getElementById("print-4");
+    const print10 = document.getElementById("print-10");
+    document.querySelectorAll("[data-format]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const fmt = btn.getAttribute("data-format");
+        document.querySelectorAll("[data-format]").forEach((b) => b.classList.toggle("on", b === btn));
+        print4.classList.toggle("hidden", fmt !== "4");
+        print10.classList.toggle("hidden", fmt !== "10");
+      });
+    });
+  </script>
+</body>
+</html>

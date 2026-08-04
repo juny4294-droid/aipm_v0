@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ワイヤー: 逆紹介候補のまとめ印刷（仮説検証）</title>
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --muted: #5c5c5c;
+      --line: #c8c8c8;
+      --bg: #f3f3f1;
+      --paper: #fff;
+      --accent: #1f4b7a;
+      --accent-soft: #e8eef4;
+      --warn: #8a4b00;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.45;
+    }
+    header.app {
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header.app h1 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    header.app p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    nav.tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 12px 24px 0;
+    }
+    nav.tabs button {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    nav.tabs button.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    main { padding: 16px 24px 48px; max-width: 1100px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .note {
+      background: var(--accent-soft);
+      border-left: 3px solid var(--accent);
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .wire {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .chrome {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+      background: #fafafa;
+    }
+    .chrome .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--line);
+    }
+    .layout-search {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 520px;
+    }
+    .filter {
+      border-right: 1px solid var(--line);
+      padding: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .filter .box {
+      border: 1px dashed var(--line);
+      padding: 10px;
+      margin-bottom: 8px;
+      min-height: 40px;
+    }
+    .results { display: flex; flex-direction: column; position: relative; }
+    .result-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .result-tabs span {
+      padding: 10px 16px;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+    }
+    .result-tabs span.on {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+    .list { padding: 8px 0 72px; }
+    .row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 8px;
+      align-items: start;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .row .name { font-weight: 700; font-size: 14px; }
+    .row .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .row .detail {
+      font-size: 12px;
+      color: var(--accent);
+      text-decoration: underline;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .select-bar {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 13px;
+    }
+    .select-bar button {
+      border: 0;
+      background: #fff;
+      color: var(--ink);
+      padding: 8px 14px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .select-bar .ghost {
+      background: transparent;
+      color: #fff;
+      border: 1px solid #888;
+      font-weight: 500;
+      margin-right: 8px;
+    }
+    .map-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 480px;
+    }
+    .side-list { border-right: 1px solid var(--line); padding-bottom: 64px; position: relative; }
+    .map-fake {
+      background:
+        linear-gradient(#e9ece8 1px, transparent 1px) 0 0 / 32px 32px,
+        linear-gradient(90deg, #e9ece8 1px, transparent 1px) 0 0 / 32px 32px,
+        #f7f8f5;
+      position: relative;
+      min-height: 480px;
+    }
+    .pin {
+      position: absolute;
+      width: 22px; height: 22px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      background: var(--accent);
+      border: 2px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .pin span { transform: rotate(45deg); }
+    .pin.selected { background: #0a7a3e; }
+    .pin.p1 { top: 28%; left: 42%; }
+    .pin.p2 { top: 48%; left: 55%; }
+    .pin.p3 { top: 36%; left: 62%; }
+    .pin.p4 { top: 58%; left: 38%; }
+    .print-sheet {
+      width: 210mm;
+      max-width: 100%;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 14mm 12mm;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 8px;
+    }
+    .print-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 6px;
+      font-size: 13px;
+    }
+    .print-head strong { font-size: 16px; }
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+      min-height: 0;
+    }
+    .card {
+      border: 1px solid var(--line);
+      padding: 10px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .card h3 {
+      margin: 0;
+      font-size: 13px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 4px;
+    }
+    .card .tel { font-size: 14px; font-weight: 700; }
+    .card .mapbox {
+      border: 1px dashed var(--line);
+      background: #f7f8f5;
+      min-height: 70px;
+      display: grid;
+      grid-template-columns: 1fr 48px;
+      gap: 6px;
+      align-items: center;
+      padding: 6px;
+      color: var(--muted);
+    }
+    .qr {
+      width: 48px; height: 48px;
+      border: 1px solid var(--line);
+      background:
+        repeating-linear-gradient(0deg, #111 0 2px, #fff 2px 4px),
+        repeating-linear-gradient(90deg, #111 0 2px, #fff 2px 4px);
+      background-blend-mode: multiply;
+      opacity: 0.85;
+    }
+    .print-foot {
+      border-top: 1px solid var(--line);
+      padding-top: 6px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .compare article {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      padding: 14px;
+      font-size: 13px;
+    }
+    .compare article.rec {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+    .compare h3 { margin: 0 0 8px; font-size: 14px; }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 2px;
+      margin-bottom: 8px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0;
+      flex-wrap: wrap;
+    }
+    .actions button {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .actions button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    @media print {
+      header.app, nav.tabs, .note, .actions, .no-print { display: none !important; }
+      main { padding: 0; max-width: none; }
+      .panel { display: none !important; }
+      .panel.print-only, #panel-print.active { display: block !important; }
+      .print-sheet { border: 0; width: auto; min-height: auto; }
+      body { background: #fff; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app">
+    <h1>ワイヤー案 — 逆紹介候補のまとめ印刷</h1>
+    <p>foro 連携マップ / 仮説検証用（案A推奨） / 2026-07-14</p>
+  </header>
+
+  <nav class="tabs" class="no-print">
+    <button type="button" class="active" data-panel="compare">0. 案比較</button>
+    <button type="button" data-panel="list">1. リストで選択</button>
+    <button type="button" data-panel="map">2. 地図で選択</button>
+    <button type="button" data-panel="print">3. 一覧印刷プレビュー</button>
+    <button type="button" data-panel="questions">4. ヒアリング質問</button>
+  </nav>
+
+  <main>
+    <section id="panel-compare" class="panel active">
+      <div class="note">Notion要件の「軽くワイヤー作ってヒアリング」用。推奨は案A（一覧・1ページ4件）。</div>
+      <div class="compare">
+        <article class="rec">
+          <span class="tag">推奨</span>
+          <h3>案A: 複数選択 → 一覧印刷</h3>
+          <p>検索（リスト/地図）でチェック → まとめ印刷。A4に最大4院。既存の患者案内（単票）は併存。</p>
+          <ul>
+            <li>印刷枚数が少ない</li>
+            <li>比較・持ち帰り向き</li>
+            <li>フローが短い</li>
+          </ul>
+        </article>
+        <article>
+          <h3>案B: 単票を連続印刷</h3>
+          <p>選択N件の既存患者案内をまとめてN枚印刷。</p>
+          <ul>
+            <li>情報量はそのまま</li>
+            <li>枚数は減らない</li>
+          </ul>
+        </article>
+        <article>
+          <h3>案C: トレイに貯める</h3>
+          <p>詳細からも「印刷用リストへ追加」。最後に一覧/単票を選ぶ。</p>
+          <ul>
+            <li>ページ跨ぎに強い</li>
+            <li>一手増える</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="panel-list" class="panel">
+      <div class="note">リスト行クリックは詳細へ。チェックは複数選択専用。下部バーから印刷プレビューへ。</div>
+      <div class="wire">
+        <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>紹介先検索 — foro 連携マップ</div>
+        <div class="layout-search">
+          <aside class="filter">
+            <div class="box">検索条件（既存）</div>
+            <div class="box">地域・診療科・条件…</div>
+            <div class="box">検索ボタン</div>
+          </aside>
+          <div class="results">
+            <div class="result-tabs">
+              <span class="on">リスト</span>
+              <span>地図</span>
+            </div>
+            <div class="list">
+              <div class="row">
+                <input type="checkbox" checked aria-label="選択" />
+                <div>
+                  <div class="name">○○内科クリニック</div>
+                  <div class="meta">港区芝… / 糖尿病内科 / 駐車場あり</div>
+                </div>
+                <span class="detail">詳細</span>
+              </div>
+              <div class="row">
+                <input type="checkbox" checked aria-label="選択" />
+                <div>
+                  <div class="name">△△医院</div>
+                  <div class="meta">品川区… / 内科 / 予約診療あり</div>
+                </div>
+                <span class="detail">詳細</span>
+              </div>
+              <div class="row">
+                <input type="checkbox" checked aria-label="選択" />
+                <div>
+                  <div class="name">□□メディカル</div>
+                  <div class="meta">大田区… / 内分泌内科</div>
+                </div>
+                <span class="detail">詳細</span>
+              </div>
+              <div class="row">
+                <input type="checkbox" aria-label="選択" />
+                <div>
+                  <div class="name">◇◇診療所</div>
+                  <div class="meta">目黒区… / 内科</div>
+                </div>
+                <span class="detail">詳細</span>
+              </div>
+            </div>
+            <div class="select-bar">
+              <span>3件選択中（上限 8件案）</span>
+              <span>
+                <button type="button" class="ghost">選択解除</button>
+                <button type="button" data-go="print">まとめて印刷</button>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-map" class="panel">
+      <div class="note">地図タブでも同じ選択状態を共有。サイドリストとピン表示を同期。</div>
+      <div class="wire">
+        <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>紹介先検索 — 地図タブ</div>
+        <div class="map-layout results">
+          <div class="side-list">
+            <div class="result-tabs">
+              <span>リスト</span>
+              <span class="on">地図</span>
+            </div>
+            <div class="row">
+              <input type="checkbox" checked />
+              <div><div class="name">○○内科クリニック</div><div class="meta">距離 1.2km</div></div>
+            </div>
+            <div class="row">
+              <input type="checkbox" checked />
+              <div><div class="name">△△医院</div><div class="meta">距離 2.1km</div></div>
+            </div>
+            <div class="row">
+              <input type="checkbox" checked />
+              <div><div class="name">□□メディカル</div><div class="meta">距離 2.8km</div></div>
+            </div>
+            <div class="select-bar">
+              <span>3件選択中</span>
+              <button type="button" data-go="print">まとめて印刷</button>
+            </div>
+          </div>
+          <div class="map-fake">
+            <div class="pin selected p1"><span>1</span></div>
+            <div class="pin selected p2"><span>2</span></div>
+            <div class="pin selected p3"><span>3</span></div>
+            <div class="pin p4"><span>4</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-print" class="panel">
+      <div class="note no-print">患者向け一覧。1ページ最大4件。単票より情報は薄いが、比較・持ち帰り用。ブラウザの印刷ダイアログ想定。</div>
+      <div class="actions no-print">
+        <button type="button" class="primary" onclick="window.print()">このプレビューを印刷（デモ）</button>
+        <button type="button" data-go="list">選択画面に戻る</button>
+      </div>
+      <div class="print-sheet">
+        <div class="print-head">
+          <strong>紹介候補のご案内</strong>
+          <span>印刷日 2026/07/14</span>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <h3>1. ○○内科クリニック</h3>
+            <div>
+              <div class="tel">03-0000-0001</div>
+              <div>東京都港区芝…</div>
+              <div>駐車場あり / 予約診療あり</div>
+              <div>最寄: JR田町駅 徒歩5分</div>
+            </div>
+            <div class="mapbox">
+              <div>地図（縮小）</div>
+              <div class="qr" title="Google Maps QR"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>2. △△医院</h3>
+            <div>
+              <div class="tel">03-0000-0002</div>
+              <div>東京都品川区…</div>
+              <div>駐車場なし / 予約診療あり</div>
+              <div>最寄: 品川駅 バス10分</div>
+            </div>
+            <div class="mapbox">
+              <div>地図（縮小）</div>
+              <div class="qr" title="Google Maps QR"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>3. □□メディカル</h3>
+            <div>
+              <div class="tel">03-0000-0003</div>
+              <div>東京都大田区…</div>
+              <div>駐車場あり / 予約診療なし</div>
+              <div>最寄: 蒲田駅 徒歩8分</div>
+            </div>
+            <div class="mapbox">
+              <div>地図（縮小）</div>
+              <div class="qr" title="Google Maps QR"></div>
+            </div>
+          </div>
+          <div class="card" style="opacity:.45;border-style:dashed;">
+            <h3>（空枠）最大4件/ページ</h3>
+            <div>4件目がある場合ここへ。5件目からは次ページ。</div>
+            <div class="mapbox"><div>予備枠</div><div class="qr"></div></div>
+          </div>
+        </div>
+        <div class="print-foot">
+          最新の診療時間や休診日は、事前に医療機関へご確認ください。／ 逆紹介数などの院内向け情報は掲載しません。
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-questions" class="panel">
+      <div class="note">ヒアリング時の確認リスト（デザイン案ドキュメントと同一）。</div>
+      <div class="wire" style="padding:16px;font-size:14px;">
+        <ol>
+          <li>一度に渡す候補は何件くらい？（目安: 2 / 4 / 8）</li>
+          <li>一覧で足りる情報は？地図は必須か、QRだけでよいか</li>
+          <li>選択はリストだけで足りるか、地図からも欲しいか</li>
+          <li>一覧と単票のどちらを主に使うか（併存で混乱しないか）</li>
+          <li>1ページ4件の密度は読みやすいか（高齢者への渡しやすさ）</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const buttons = document.querySelectorAll('nav.tabs button');
+    const panels = document.querySelectorAll('.panel');
+    function show(id) {
+      panels.forEach((p) => p.classList.toggle('active', p.id === 'panel-' + id));
+      buttons.forEach((b) => b.classList.toggle('active', b.dataset.panel === id));
+    }
+    buttons.forEach((b) => b.addEventListener('click', () => show(b.dataset.panel)));
+    document.querySelectorAll('[data-go]').forEach((el) => {
+      el.addEventListener('click', () => show(el.getAttribute('data-go')));
+    });
+  </script>
+</body>
+</html>
