@@ -1,0 +1,100 @@
+cular_receipt_codes AS v
+    ON ef.receipt_code = v.code
+  CROSS JOIN params AS p
+  WHERE ef.tenant_id = p.tenant_id
+    AND ef.data_type != 'SY'
+    AND ef.action_detail_number = 0
+),
+
+-- NX4b: 血管内手術Kコード（入院・全期間）。K178-3 除外
+nx4_vascular_adm AS (
+  SELECT DISTINCT
+    CAST(SAFE_CAST(h.patient_number AS INT64) AS STRING) AS patient_id
+  FROM `medup-foro.foro_prd.public_hospital_admissions` AS h
+  CROSS JOIN params AS p
+  WHERE h.tenant_id = p.tenant_id
+    AND h.kcode_operation_1 IS NOT NULL
+    AND (
+      (STARTS_WITH(h.kcode_operation_1, 'K178') AND NOT STARTS_WITH(h.kcode_operation_1, 'K178-3'))
+      OR STARTS_WITH(h.kcode_operation_1, 'K609-2')
+    )
+),
+
+-- NX4c: 血小板凝集能（外来EF・全期間）
+nx4_platelet AS (
+  SELECT DISTINCT
+    CAST(SAFE_CAST(ef.patient_id AS INT64) AS STRING) AS patient_id
+  FROM `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+  INNER JOIN platelet_codes AS pl
+    ON ef.receipt_code = pl.code
+  CROSS JOIN params AS p
+  WHERE ef.tenant_id = p.tenant_id
+    AND ef.data_type != 'SY'
+    AND ef.action_detail_number = 0
+),
+
+nx4_vascular_or_platelet AS (
+  SELECT patient_id FROM nx4_vascular_ef
+  UNION DISTINCT
+  SELECT patient_id FROM nx4_vascular_adm
+  UNION DISTINCT
+  SELECT patient_id FROM nx4_platelet
+),
+
+-- NX5: 最新MRIと同日に造影剤使用加算（MRI）
+latest_mri AS (
+  SELECT
+    e.patient_id,
+    MAX(e.outpatient_date) AS latest_mri_date
+  FROM ef_period AS e
+  INNER JOIN mri_codes AS m
+    ON e.receipt_code = m.code
+  INNER JOIN target_patients AS t
+    USING (patient_id)
+  GROUP BY e.patient_id
+),
+
+nx5_contrast_mri AS (
+  -- 造影剤使用加算は明細行（action_detail_number > 0）に載るため、E行(=0)に絞らない
+  SELECT DISTINCT lm.patient_id
+  FROM latest_mri AS lm
+  INNER JOIN `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+    ON CAST(SAFE_CAST(ef.patient_id AS INT64) AS STRING) = lm.patient_id
+   AND ef.outpatient_date.value = lm.latest_mri_date
+  CROSS JOIN params AS p
+  WHERE ef.tenant_id = p.tenant_id
+    AND ef.data_type != 'SY'
+    AND ef.receipt_code = '170020470'
+),
+
+-- NX6: 期間内てんかん指導料
+nx6_epilepsy AS (
+  SELECT DISTINCT t.patient_id
+  FROM target_patients AS t
+  INNER JOIN ef_period AS e
+    USING (patient_id)
+  INNER JOIN epilepsy_codes AS ep
+    ON e.receipt_code = ep.code
+),
+
+-- NX7: くも膜下出血 DPC・直近5年以内退院
+nx7_sah AS (
+  SELECT DISTINCT
+    CAST(SAFE_CAST(h.patient_number AS INT64) AS STRING) AS patient_id
+  FROM `medup-foro.foro_prd.public_hospital_admissions` AS h
+  CROSS JOIN params AS p
+  WHERE h.tenant_id = p.tenant_id
+    AND h.dpc_code IS NOT NULL
+    AND STARTS_WITH(h.dpc_code, '010020')
+    AND h.admission_ended_on > p.sah_lookback_start
+    AND h.admission_ended_on <= p.period_end
+),
+
+-- NX8: 期間内に脳神経外科から逆紹介済
+nx8_reverse_referred AS (
+  SELECT DISTINCT
+    CAST(SAFE_CAST(r.patient_id AS INT64) AS STRING) AS patient_id
+  FROM `medup-foro.foro_prd.public_reverse_referrals` AS r
+  INNER JOIN `medup-foro.foro_prd.public_own_departments` AS dept
+    ON dept.id = r.specialty_id
+  INNER JOIN `medup-foro.foro_prd.public_own_department_tenants` AS odt

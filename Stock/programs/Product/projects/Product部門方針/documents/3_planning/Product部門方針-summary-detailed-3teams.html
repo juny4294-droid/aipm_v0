@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Product部門方針（3チーム版）</title>
+  <style>
+    :root {
+      --title: #0822b1;
+      --vision: #133ba3;
+      --sec-blue: #0669ff;
+      --badge-blue: #0163f9;
+      --badge-gray: #666972;
+      --badge-purple: #4f0cb5;
+      --fde: #015df4;
+      --dev: #048024;
+      --data: #fd5a01;
+      --data-text: #c44a00;
+      --border-gray: #d0d4da;
+      --label-bg: #f3f4f6;
+      --label-text: #555;
+      --text: #1a1a1a;
+      --fde-out-bg: #ecf5fe;
+      --dev-out-bg: #f0f4ea;
+      --data-out-bg: #fff6f1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 1536px;
+      height: 1024px;
+      overflow: hidden;
+      background: #fff;
+      color: var(--text);
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "YuGothic", "Meiryo", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      width: 1536px;
+      height: 1024px;
+      padding: 12px 30px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 38px;
+      font-weight: 700;
+      color: var(--title);
+      line-height: 1.15;
+      margin-bottom: 0;
+      letter-spacing: 0.02em;
+      flex: 0 0 auto;
+    }
+
+    .badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .badge.blue { background: var(--badge-blue); }
+    .badge.gray { background: var(--badge-gray); }
+    .badge.purple { background: var(--badge-purple); }
+
+    .sec-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--sec-blue);
+      white-space: nowrap;
+    }
+    .sec-title.purple { color: var(--badge-purple); }
+
+    /* Section 1 */
+    .vision-block { flex: 0 0 auto; }
+    .vision-frame {
+      border: 2px solid var(--fde);
+      border-radius: 8px;
+      padding: 10px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 148px;
+    }
+    .vision-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 34px;
+    }
+    .vision-text {
+      flex: 1;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--vision);
+      line-height: 1.35;
+      padding: 0 12px;
+    }
+    .vision-flow {
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+    }
+    .vision-card {
+      flex: 1;
+      border: 2px solid var(--fde);
+      border-radius: 8px;
+      background: #fff;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 10px 18px;
+      min-width: 0;
+    }
+    .vision-card .icon {
+      width: 58px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .vision-card .label {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+      text-align: left;
+    }
+    .chevron {
+      width: 0;
+      height: 0;
+      border-top: 15px solid transparent;
+      border-bottom: 15px solid transparent;
+      border-left: 22px solid var(--fde);
+      margin: 0 10px;
+      align-self: center;
+      flex-shrink: 0;
+    }
+
+    /* Section 2 */
+    .teams {
+      flex: 0 0 auto;
+      overflow: hidden;
+      height: 432px;
+    }
+    .teams-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 11px;
+      height: 432px;
+      overflow: hidden;
+    }
+    .team {
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      height: 100%;
+      position: relative;
+    }
+    .team.fde { border-color: var(--fde); }
+    .team-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 2;
+    }
+    .team.dev { border-color: var(--dev); }
+    .team.dataops { border-color: var(--data); }
+
+    .team-hdr {
+      color: #fff;
+      font-size: 21px;
+      font-weight: 700;
+      text-align: center;
+      padding: 11px 8px;
+      line-height: 1.2;
+    }
+    .fde .team-hdr { background: var(--fde); }
+    .dev .team-hdr { background: var(--dev); }
+    .dataops .team-hdr { background: var(--data); }
+
+    .team-body {
+      padding: 12px 14px 13px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .theme-line {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+    .fde .theme-line { color: var(--fde); }
+    .dev .theme-line { color: var(--dev); }
+    .dataops .theme-line { color: var(--data); }
+    .theme-sub {
+      font-size: 15px;
+      color: #333;
+      line-height: 1.4;
+      margin-top: 3px;
+    }
+
+    .members {
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.4;
+      background: #fff;
+    }
+    .fde .members { border: 2px solid var(--fde); }
+    .dev .members { border: 2px solid var(--dev); }
+    .dataops .members { border: 2px solid var(--data); }
+
+    .fde-flow {
+      display: flex;
+      align-items: stretch;
+      justify-content: stretch;
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+    }
+    .flow-box {
+      border: 2px solid var(--fde);
+      border-radius: 6px;
+      background: #fff;
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.3;
+      flex: 1;
+      min-width: 0;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .flow-box .sub {
+      font-size: 12px;
+      color: #444;
+      margin-top: 3px;
+      font-weight: 500;
+    }
+    .flow-arrow {
+      width: 0;
+      height: 0;
+      border-top: 9px solid transparent;
+      border-bottom: 9px solid transparent;
+      border-left: 13px solid var(--fde);
+      flex-shrink: 0;
+      margin: 0 2px;
+      align-self: center;
+    }
+
+    .bullets {
+      border: 2px solid;
+      border-radius: 6px;
+      padding: 14px 14px 14px 28px;
+      font-size: 15px;
+      line-height: 1.6;
+      flex: 1;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .dev .bullets { border-color: var(--dev); }
+    .dataops .bullets { border-color: var(--data); }
+    .bullets li { margin-bottom: 5px; }
+    .dev .bullets li::marker { color: var(--dev); }
+    .dataops .bullets li::marker { color: var(--data); }
+
+    .outcome {
+      border-radius: 6px;
+      padding: 12px 10px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-top: auto;
+      border: 2px solid;
+    }
+    .fde .outcome { background: var(--fde-out-bg); color: var(--fde); border-color: var(--fde); }
+    .dev .outcome { background: var(--dev-out-bg); color: var(--dev); border-color: var(--dev); }
+    .dataops .outcome { background: var(--data-out-bg); color: var(--data-text); border-color: var(--data); }
+
+    /* Section 3 */
+    .cross-block {
+      height: 188px;
+      flex: 0 0 auto;
+      overflow: hidden;
+    }
+    .cross-grid {
+      width: 100%;
+      border: 2px solid var(--border-gray);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .cross-row {
+      display: grid;
+      grid-template-columns: 228px 1fr;
+      border-bottom: 1px solid #d8dce2;
+      flex: 1;
+    }
+    .cross-row:last-child { border-bottom: none; }
+    .cross-label {
+      background: var(--label-bg);
+      padding: 14px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--label-text);
+      line-height: 1.5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border-right: 1px solid #d8dce2;
+      position: relative;
+    }
+    .cross-label.with-badge {
+      padding: 14px 16px;
+    }
+    .cross-label .section-badge {
+      position: absolute;
+      left: 12px;
+      top: 10px;
+      transform: none;
+    }
+    .cross-label-text {
+      width: 100%;
+      text-align: center;
+      padding: 0 8px;
+    }
+    .cross-content {
+      display: flex;
+      align-items: stretch;
+      min-width: 0;
+    }
+    .cross-cell {
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+      min-width: 0;
+    }
+    .cross-icon {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cross-name { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .cross-desc { font-size: 14px; color: #444; line-height: 1.45; }
+
+    /* Section 4 */
+    .goal-section { flex: 0 0 auto; overflow: hidden; }
+    .goal-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+      min-height: 30px;
+    }
+    .goal-block {
+      border: 2px solid var(--badge-purple);
+      border-radius: 8px;
+      padding: 16px 20px;
+      text-align: center;
+    }
+    .goal-text {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Product部門方針</h1>
+
+    <section class="vision-block">
+      <div class="vision-frame">
+        <div class="vision-top">
+          <span class="badge blue">1</span>
+          <span class="sec-title">部門Vision</span>
+          <p class="vision-text">顧客課題に深く入り、プロダクトの構築と改善で価値を最大化する</p>
+        </div>
+        <div class="vision-flow">
+          <div class="vision-card">
+            <div class="icon">
+              <svg width="68" height="54" viewBox="0 0 58 46" fill="none" aria-hidden="true">
+                <circle cx="17" cy="13" r="7" fill="#5a6270"/>
+                <path d="M4 42c2.5-10 7.5-14 13-14s10.5 4 13 14" fill="#5a6270"/>
+                <circle cx="37" cy="15" r="6" fill="#5a6270"/>
+                <path d="M29 42c2-8 5.5-12 10-12s8 4 10 12" fill="#5a6270"/>
+                <circle cx="49" cy="17" r="5" fill="#5a6270"/>
+                <path d="M43 42c1.5-7 3.5-10 8-10s6.5 3 8 10" fill="#5a6270"/>
+              </svg>
+            </div>
+            <div class="label">顧客・業務理解</div>
+          </div>
+          <div class="chevron"></div>
+          <div class="vision-card">
+            <div class="icon">
+              <svg width="68" height="54" viewBox="0 0 58 46" fill="none" aria-hidden="true">
+                <rect x="9" y="9" width="40" height="26" rx="3" stroke="#5a6270" stroke-width="2.5" fill="#fff"/>
+                <rect x="21" y="35" width="16" height="4" rx="1" fill="#5a6270"/>
+                <circle cx="41" cy="17" r="8" stroke="#5a6270" stroke-width="2" fill="none"/>
+                <path d="M41 13v8M37 17h8" stroke="#5a6270" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="label">プロダクト活用・構築</div>
+          </div>
+          <div class="chevron"></div>
+          <div class="vision-card">
+            <div class="icon">
+              <svg width="68" height="54" viewBox="0 0 58 46" fill="none" aria-hidden="true">
+                <circle cx="29" cy="23" r="18" stroke="#5a6270" stroke-width="2.5" fill="none"/>
+                <circle cx="29" cy="23" r="10" stroke="#5a6270" stroke-width="2" fill="none"/>
+                <circle cx="29" cy="23" r="3" fill="#5a6270"/>
+                <path d="M29 5v6M29 35v6M11 23h6M41 23h6" stroke="#5a6270" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="label">価値の最大化</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="teams">
+      <div class="teams-grid">
+        <div class="team fde">
+          <span class="badge blue team-badge">2</span>
+          <div class="team-hdr">FDE チーム（探索）</div>
+          <div class="team-body">
+            <div>
+              <div class="theme-line">テーマ：顧客に深く入り込む</div>
+              <div class="theme-sub">顧客現場で課題を見つけ、実装まで届ける</div>
+            </div>
+            <div class="members">黒川・FDE（採用）</div>
+            <div class="fde-flow">
+              <div class="flow-box">接点・案件立上<div class="sub">(FS/CS)</div></div>
+              <div class="flow-arrow"></div>
+              <div class="flow-box">深掘り・構造化<div class="sub">(FS/CS+FDE)</div></div>
+              <div class="flow-arrow"></div>
+              <div class="flow-box">設計・開発・検証<div class="sub">(FDE)</div></div>
+              <div class="flow-arrow"></div>
+              <div class="flow-box">保守・拡大<div class="sub">(Dev)</div></div>
+            </div>
+            <div class="outcome">顧客課題を解決するプロダクトを提供する</div>
+          </div>
+        </div>
+
+        <div class="team dev">
+          <div class="team-hdr">Dev チーム（継続）</div>
+          <div class="team-body">
+            <div>
+              <div class="theme-line">テーマ：持続可能なSaaS</div>
+              <div class="theme-sub">foroシリーズの維持・改善・安定運用</div>
+            </div>
+            <div class="members">廣・新保</div>
+            <ul class="bullets">
+              <li>VoC対応、機能改善</li>
+              <li>セキュリティ対応</li>
+              <li>データ修正・マスタ管理</li>
+            </ul>
+            <div class="outcome">プロダクトの価値を守り、向上させる</div>
+          </div>
+        </div>
+
+        <div class="team dataops">
+          <div class="team-hdr">DataOps チーム（定例）</div>
+          <div class="team-body">
+            <div>
+              <div class="theme-line">テーマ：データの確実な取り込み・更新</div>
+            </div>
+            <div class="members">藤原 / 田尻 / 瀬谷 / 久保 / 高士 / 黒川（兼務）</div>
+            <ul class="bullets">
+              <li>定例投入の安定稼働</li>
+              <li>品質チェックの標準化</li>
+              <li>CSとの優先度・エスカレーション明確化</li>
+            </ul>
+            <div class="outcome">病院データを、使える状態で安定して届ける</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cross-block">
+      <div class="cross-grid">
+        <div class="cross-row">
+          <div class="cross-label with-badge">
+            <span class="badge gray section-badge">3</span>
+            <div class="cross-label-text">AI駆動開発・<br>インフラ・<br>セキュリティ</div>
+          </div>
+          <div class="cross-content">
+          <div class="cross-cell">
+            <div class="cross-icon">
+              <svg width="46" height="46" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <rect x="10" y="10" width="12" height="12" rx="2" fill="#5a6270"/>
+                <rect x="4" y="13" width="4" height="6" rx="1" fill="#5a6270"/>
+                <rect x="24" y="13" width="4" height="6" rx="1" fill="#5a6270"/>
+                <rect x="13" y="4" width="6" height="4" rx="1" fill="#5a6270"/>
+                <rect x="13" y="24" width="6" height="4" rx="1" fill="#5a6270"/>
+              </svg>
+            </div>
+            <div>
+              <div class="cross-name">テックリード（採用）</div>
+              <div class="cross-desc">AI駆動開発の体制構築、foroへの浸透、技術・セキュリティ</div>
+            </div>
+          </div>
+          <div class="cross-cell">
+            <div class="cross-icon">
+              <svg width="46" height="46" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path d="M10 22c0-6 3-10 6-10s6 4 6 10" stroke="#5a6270" stroke-width="2.5" fill="none"/>
+                <ellipse cx="16" cy="22" rx="10" ry="3" stroke="#5a6270" stroke-width="2" fill="none"/>
+                <rect x="13" y="8" width="6" height="5" rx="1" fill="#5a6270"/>
+              </svg>
+            </div>
+            <div>
+              <div class="cross-name">馬場</div>
+              <div class="cross-desc">AI駆動開発、インフラ、セキュリティ</div>
+            </div>
+          </div>
+          </div>
+        </div>
+        <div class="cross-row">
+          <div class="cross-label">部門マネジメント・デザイン</div>
+          <div class="cross-content">
+          <div class="cross-cell">
+            <div class="cross-icon">
+              <svg width="46" height="46" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <circle cx="16" cy="11" r="6" fill="#5a6270"/>
+                <path d="M6 28c2-8 6-11 10-11s8 3 10 11" fill="#5a6270"/>
+              </svg>
+            </div>
+            <div>
+              <div class="cross-name">山田</div>
+              <div class="cross-desc">部門マネジメント、PdM</div>
+            </div>
+          </div>
+          <div class="cross-cell">
+            <div class="cross-icon">
+              <svg width="46" height="46" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <ellipse cx="16" cy="20" rx="10" ry="8" stroke="#5a6270" stroke-width="2" fill="none"/>
+                <circle cx="12" cy="18" r="2" fill="#5a6270"/>
+                <circle cx="20" cy="16" r="2" fill="#5a6270"/>
+                <circle cx="16" cy="22" r="2" fill="#5a6270"/>
+              </svg>
+            </div>
+            <div>
+              <div class="cross-name">田中</div>
+              <div class="cross-desc">デザイン資産整理</div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="goal-section">
+      <div class="goal-head">
+        <span class="badge purple">4</span>
+        <span class="sec-title purple">2027年1月時点のゴール</span>
+      </div>
+      <div class="goal-block">
+        <p class="goal-text">FDE ・ Dev ・ DataOps のそれぞれに必要なメンバーが参画し、チームとして自律的に動けている</p>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

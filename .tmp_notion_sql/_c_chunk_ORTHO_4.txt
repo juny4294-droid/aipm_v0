@@ -1,0 +1,10 @@
+
+      SELECT COUNT(*)
+      FROM categorized c
+      WHERE medical_service_category NOT IN ('1.入院','2.初診')
+        AND NOT EXISTS (SELECT 1 FROM ox2 WHERE ox2.patient_id = c.patient_id)
+        AND NOT EXISTS (SELECT 1 FROM ox3 WHERE ox3.patient_id = c.patient_id)
+    ) AS n_final_candidates
+)
+SELECT * FROM funnel;
+*/

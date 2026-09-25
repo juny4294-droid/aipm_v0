@@ -1,0 +1,84 @@
+ INNER JOIN `medup-foro.foro_prd.public_own_department_tenants` AS odt
+    ON odt.own_department_id = dept.id
+   AND odt.tenant_id = r.tenant_id
+  CROSS JOIN params AS p
+  WHERE r.tenant_id = p.tenant_id
+    AND dept.name = p.target_department_name
+    AND r.reverse_referral_date BETWEEN p.period_start AND p.period_end
+)
+
+SELECT
+  t.patient_id,
+  t.medical_service_category,
+  t.visit_count_in_specialty,
+  IF(ux1.patient_id IS NOT NULL, 1, 0) AS ux1_multi_dept_flag,
+  IF(ux2.patient_id IS NOT NULL, 1, 0) AS ux2_mri_flag,
+  IF(ux3.patient_id IS NOT NULL, 1, 0) AS ux3_tottori_univ_flag,
+  IF(ux4.patient_id IS NOT NULL, 1, 0) AS ux4_prostate_surgery_flag,
+  IF(ux6.patient_id IS NOT NULL, 1, 0) AS ux6_reverse_referred_flag
+FROM target_patients AS t
+LEFT JOIN ux1_multi_dept AS ux1 USING (patient_id)
+LEFT JOIN ux2_mri AS ux2 USING (patient_id)
+LEFT JOIN ux3_tottori_univ AS ux3 USING (patient_id)
+LEFT JOIN ux4_prostate_surgery AS ux4 USING (patient_id)
+LEFT JOIN ux6_reverse_referred AS ux6 USING (patient_id)
+WHERE ux1.patient_id IS NULL
+  AND ux2.patient_id IS NULL
+  AND ux3.patient_id IS NULL
+  AND ux4.patient_id IS NULL
+  AND ux6.patient_id IS NULL
+ORDER BY t.patient_id
+;
+
+
+-- ============================================================================
+-- B. ファネル件数（Aをコメントアウトして単体実行）
+-- ============================================================================
+/*
+WITH
+params AS (
+  SELECT
+    274 AS tenant_id,
+    DATE '2025-08-01' AS period_start,
+    DATE '2026-07-31' AS period_end,
+    '泌尿器科' AS target_department_name,
+    75462 AS tottori_univ_medical_institution_id,
+    DATE_SUB(DATE '2026-07-31', INTERVAL 5 YEAR) AS prostate_surgery_lookback_start
+),
+mri_codes AS (
+  SELECT code FROM UNNEST(['170020110', '170033510']) AS code
+),
+uro_doctors AS (
+  SELECT
+    SAFE_CAST(d.tenant_id AS INT64) AS tenant_id,
+    d.doctor_code,
+    d.department_name
+  FROM `medup-foro.dpc_patient_records_prd.dbt_int_doctor_department` AS d
+  CROSS JOIN params AS p
+  WHERE SAFE_CAST(d.tenant_id AS INT64) = p.tenant_id
+    AND d.department_name = p.target_department_name
+),
+uro_ef AS (
+  SELECT
+    CAST(SAFE_CAST(ef.patient_id AS INT64) AS STRING) AS patient_id,
+    ef.outpatient_date.value AS outpatient_date,
+    ef.receipt_code
+  FROM `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+  INNER JOIN uro_doctors AS ud
+    ON ef.doctor_code = ud.doctor_code
+   AND SAFE_CAST(ef.tenant_id AS INT64) = ud.tenant_id
+  CROSS JOIN params AS p
+  WHERE ef.tenant_id = p.tenant_id
+    AND ef.data_type != 'SY'
+    AND ef.action_detail_number = 0
+    AND ef.outpatient_date.value BETWEEN p.period_start AND p.period_end
+),
+ef_period AS (
+  SELECT
+    CAST(SAFE_CAST(ef.patient_id AS INT64) AS STRING) AS patient_id,
+    IFNULL(d.department_name, '未割当') AS department_name,
+    ef.receipt_code
+  FROM `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+  LEFT JOIN `medup-foro.dpc_patient_records_prd.dbt_int_doctor_department` AS d
+    ON ef.doctor_code = d.doctor_code
+   AND SAFE_C

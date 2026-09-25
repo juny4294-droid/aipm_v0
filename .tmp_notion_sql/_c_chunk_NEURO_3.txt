@@ -1,0 +1,88 @@
+    ON odt.own_department_id = dept.id
+   AND odt.tenant_id = r.tenant_id
+  CROSS JOIN params AS p
+  WHERE r.tenant_id = p.tenant_id
+    AND dept.name = p.target_department_name
+    AND r.reverse_referral_date BETWEEN p.period_start AND p.period_end
+)
+
+SELECT
+  t.patient_id,
+  IF(nx1.patient_id IS NOT NULL, 1, 0) AS nx1_multi_dept_flag,
+  IF(nx2.patient_id IS NOT NULL, 1, 0) AS nx2_ct_flag,
+  IF(nx3.patient_id IS NOT NULL, 1, 0) AS nx3_jinbu_flag,
+  IF(nx4.patient_id IS NOT NULL, 1, 0) AS nx4_vascular_or_platelet_flag,
+  IF(nx5.patient_id IS NOT NULL, 1, 0) AS nx5_contrast_mri_flag,
+  IF(nx6.patient_id IS NOT NULL, 1, 0) AS nx6_epilepsy_flag,
+  IF(nx7.patient_id IS NOT NULL, 1, 0) AS nx7_sah_flag,
+  IF(nx8.patient_id IS NOT NULL, 1, 0) AS nx8_reverse_referred_flag
+FROM target_patients AS t
+LEFT JOIN nx1_multi_dept AS nx1 USING (patient_id)
+LEFT JOIN nx2_ct AS nx2 USING (patient_id)
+LEFT JOIN nx3_jinbu AS nx3 USING (patient_id)
+LEFT JOIN nx4_vascular_or_platelet AS nx4 USING (patient_id)
+LEFT JOIN nx5_contrast_mri AS nx5 USING (patient_id)
+LEFT JOIN nx6_epilepsy AS nx6 USING (patient_id)
+LEFT JOIN nx7_sah AS nx7 USING (patient_id)
+LEFT JOIN nx8_reverse_referred AS nx8 USING (patient_id)
+WHERE nx1.patient_id IS NULL
+  AND nx2.patient_id IS NULL
+  AND nx3.patient_id IS NULL
+  AND nx4.patient_id IS NULL
+  AND nx5.patient_id IS NULL
+  AND nx6.patient_id IS NULL
+  AND nx7.patient_id IS NULL
+  AND nx8.patient_id IS NULL
+ORDER BY t.patient_id
+;
+
+
+-- ============================================================================
+-- B. ファネル件数（Aをコメントアウトして単体実行）
+-- ============================================================================
+/*
+WITH
+params AS (
+  SELECT
+    274 AS tenant_id,
+    DATE '2025-08-01' AS period_start,
+    DATE '2026-07-31' AS period_end,
+    '脳神経外科' AS target_department_name,
+    DATE_SUB(DATE '2026-07-31', INTERVAL 5 YEAR) AS sah_lookback_start
+),
+mri_codes AS (
+  SELECT code FROM UNNEST(['170020110', '170033510']) AS code
+),
+ct_codes AS (
+  SELECT code FROM UNNEST([
+    '170011710', '170011810', '170012070', '170027310', '170028610',
+    '170033410', '170034910', '170038810', '170038910', '170040210',
+    '170040250', '170040410', '170040610', '170704810', '170704910',
+    '170901710'
+  ]) AS code
+),
+vascular_receipt_codes AS (
+  SELECT code FROM UNNEST([
+    '150254910', '150344410', '150355410', '150273510',
+    '150380850', '150337110', '150453450', '150372510'
+  ]) AS code
+),
+platelet_codes AS (
+  SELECT code FROM UNNEST(['160238710', '160238610']) AS code
+),
+epilepsy_codes AS (
+  SELECT code FROM UNNEST(['113002850', '113029610']) AS code
+),
+neuro_doctors AS (
+  SELECT
+    SAFE_CAST(d.tenant_id AS INT64) AS tenant_id,
+    d.doctor_code,
+    d.department_name
+  FROM `medup-foro.dpc_patient_records_prd.dbt_int_doctor_department` AS d
+  CROSS JOIN params AS p
+  WHERE SAFE_CAST(d.tenant_id AS INT64) = p.tenant_id
+    AND d.department_name = p.target_department_name
+),
+ef_period AS (
+  SELECT
+    CAST(SAFE_CAST(ef.patient_id AS INT6

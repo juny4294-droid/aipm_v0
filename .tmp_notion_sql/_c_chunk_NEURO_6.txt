@@ -1,0 +1,4 @@
+atient_id)
+)
+SELECT * FROM funnel;
+*/

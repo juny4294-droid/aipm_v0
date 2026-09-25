@@ -1,0 +1,77 @@
+4) AS STRING) AS patient_id,
+    IFNULL(d.department_name, '未割当') AS department_name,
+    ef.outpatient_date.value AS outpatient_date,
+    ef.receipt_code
+  FROM `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+  LEFT JOIN `medup-foro.dpc_patient_records_prd.dbt_int_doctor_department` AS d
+    ON ef.doctor_code = d.doctor_code
+   AND SAFE_CAST(ef.tenant_id AS INT64) = SAFE_CAST(d.tenant_id AS INT64)
+  CROSS JOIN params AS p
+  WHERE ef.tenant_id = p.tenant_id
+    AND ef.data_type != 'SY'
+    AND ef.action_detail_number = 0
+    AND ef.outpatient_date.value BETWEEN p.period_start AND p.period_end
+),
+neuro_patients AS (
+  SELECT DISTINCT CAST(SAFE_CAST(ef.patient_id AS INT64) AS STRING) AS patient_id
+  FROM `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+  INNER JOIN neuro_doctors AS nd
+    ON ef.doctor_code = nd.doctor_code
+   AND SAFE_CAST(ef.tenant_id AS INT64) = nd.tenant_id
+  CROSS JOIN params AS p
+  WHERE ef.tenant_id = p.tenant_id
+    AND ef.data_type != 'SY'
+    AND ef.action_detail_number = 0
+    AND ef.outpatient_date.value BETWEEN p.period_start AND p.period_end
+),
+mri_patients AS (
+  SELECT DISTINCT e.patient_id
+  FROM ef_period AS e
+  INNER JOIN mri_codes AS m ON e.receipt_code = m.code
+),
+target_patients AS (
+  SELECT n.patient_id
+  FROM neuro_patients AS n
+  INNER JOIN mri_patients AS m USING (patient_id)
+),
+nx1 AS (
+  SELECT DISTINCT t.patient_id
+  FROM target_patients AS t
+  INNER JOIN ef_period AS e USING (patient_id)
+  CROSS JOIN params AS p
+  WHERE e.department_name != p.target_department_name
+),
+nx2 AS (
+  SELECT DISTINCT t.patient_id
+  FROM target_patients AS t
+  INNER JOIN ef_period AS e USING (patient_id)
+  INNER JOIN ct_codes AS c ON e.receipt_code = c.code
+),
+nx3 AS (
+  -- 予約未投入のため空（投入後は reservations × doctors の神部クエリに戻す）
+  SELECT CAST(NULL AS STRING) AS patient_id
+  LIMIT 0
+),
+nx4 AS (
+  SELECT patient_id FROM (
+    SELECT DISTINCT CAST(SAFE_CAST(ef.patient_id AS INT64) AS STRING) AS patient_id
+    FROM `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+    INNER JOIN vascular_receipt_codes AS v ON ef.receipt_code = v.code
+    CROSS JOIN params AS p
+    WHERE ef.tenant_id = p.tenant_id AND ef.data_type != 'SY' AND ef.action_detail_number = 0
+    UNION DISTINCT
+    SELECT DISTINCT CAST(SAFE_CAST(h.patient_number AS INT64) AS STRING) AS patient_id
+    FROM `medup-foro.foro_prd.public_hospital_admissions` AS h
+    CROSS JOIN params AS p
+    WHERE h.tenant_id = p.tenant_id
+      AND h.kcode_operation_1 IS NOT NULL
+      AND (
+        (STARTS_WITH(h.kcode_operation_1, 'K178') AND NOT STARTS_WITH(h.kcode_operation_1, 'K178-3'))
+        OR STARTS_WITH(h.kcode_operation_1, 'K609-2')
+      )
+    UNION DISTINCT
+    SELECT DISTINCT CAST(SAFE_CAST(ef.patient_id AS INT64) AS STRING) AS patient_id
+    FROM `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+    INNER JOIN platelet_codes AS pl ON ef.receipt_code = pl.code
+    CROSS JOIN params AS p
+    WHERE ef.tenant_id = p.tenant_id AND ef.data_type != 'SY' AN

@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>AIDPC 想定の作業フロー（確認用）</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 1920px; height: 1080px; background: #fff; overflow: hidden;
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+      color: #222;
+    }
+    .slide {
+      width: 1920px; height: 1080px;
+      padding: 16px 48px 10px;
+      display: flex; flex-direction: column;
+    }
+    .header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      margin-bottom: 6px; flex: 0 0 auto;
+    }
+    h1 { font-size: 26px; color: #1d4ed8; }
+    .purpose { font-size: 12px; color: #555; text-align: right; line-height: 1.35; }
+
+    .diagram-wrap {
+      flex: 0 0 auto;
+      height: 750px;
+      display: flex;
+      justify-content: center;
+    }
+    .main {
+      width: 1680px;
+      height: 750px;
+      display: grid;
+      grid-template-columns: 720px 160px 720px;
+      gap: 24px;
+      position: relative;
+    }
+
+    .zone {
+      border: 3px solid #64748b;
+      border-radius: 14px;
+      padding: 18px 14px 14px;
+      position: relative;
+      height: 100%;
+    }
+    .zone.closed { background: #fff7ed; border-color: #ea580c; }
+    .zone.net { background: #eff6ff; border-color: #2563eb; }
+    .zone-title {
+      position: absolute; top: -13px; left: 16px;
+      padding: 0 10px;
+      font-size: 22px; font-weight: 800;
+    }
+    .zone.closed .zone-title { color: #c2410c; background: #fff7ed; }
+    .zone.net .zone-title { color: #1d4ed8; background: #eff6ff; }
+
+    .sys-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      height: 100%;
+      padding-top: 4px;
+    }
+    .sys-col {
+      display: grid;
+      grid-template-rows: auto 140px auto 1fr;
+      align-items: center;
+      justify-items: center;
+      height: 100%;
+      padding-top: 8px;
+    }
+    .sys-box {
+      background: #fff;
+      border: 2.5px solid #334155;
+      border-radius: 10px;
+      padding: 12px 6px;
+      width: 100%;
+      text-align: center;
+      font-size: 18px; font-weight: 800;
+      box-shadow: 3px 4px 0 #cbd5e1;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      z-index: 2;
+    }
+
+    /* サーバー→ファイル間スペーサ（矢印はJS）／ファイルを枠の中間に */
+    .v-link {
+      width: 4px;
+      height: 100%;
+      visibility: hidden;
+      justify-self: center;
+    }
+    .file-icon {
+      text-align: center;
+      width: 100%;
+      position: relative;
+      z-index: 2;
+    }
+    .col-spacer {
+      width: 100%;
+      height: 100%;
+    }
+    .file-icon .name {
+      margin-top: 4px;
+      font-size: 16px; font-weight: 800; color: #1d4ed8; line-height: 1.25;
+    }
+    .file-icon .note {
+      margin-top: 3px;
+      font-size: 13px; color: #64748b; font-weight: 600; line-height: 1.3;
+    }
+    .or {
+      display: inline-block;
+      background: #fff7ed; border: 1.5px solid #f59e0b; color: #b45309;
+      font-size: 12px; font-weight: 800;
+      border-radius: 4px; padding: 0 4px;
+    }
+
+    .bridge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      position: relative;
+      z-index: 5;
+      /* ②の高さをファイル行に合わせる */
+      padding-top: 200px;
+    }
+    .usb-box {
+      background: #fef9c3;
+      border: 3px solid #ca8a04;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 24px; font-weight: 900;
+      box-shadow: 3px 4px 0 #fde68a;
+      margin-top: 24px;
+    }
+    .person-block {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      font-size: 15px; font-weight: 700; color: #334155;
+    }
+    .step {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #2563eb; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 900;
+      box-shadow: 0 2px 0 #1e40af;
+    }
+    .step.lg { width: 36px; height: 36px; font-size: 18px; flex: 0 0 auto; }
+
+    .h-arrow {
+      display: flex; align-items: center; width: 100%;
+    }
+    .h-arrow .shaft { flex: 1; height: 5px; background: #2563eb; border-radius: 2px; }
+    .h-arrow .head {
+      width: 0; height: 0;
+      border-top: 11px solid transparent;
+      border-bottom: 11px solid transparent;
+      border-left: 16px solid #2563eb;
+    }
+
+    .net-inner {
+      height: 100%;
+      display: grid;
+      grid-template-columns: 150px 110px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+    .pc-box {
+      background: #fff;
+      border: 2.5px solid #334155;
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+      box-shadow: 3px 4px 0 #cbd5e1;
+    }
+    .pc-box .ttl { font-size: 15px; font-weight: 800; margin-top: 6px; line-height: 1.25; }
+    .pc-box .sub { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+    .drive {
+      background: #fff;
+      border: 3px solid #1d4ed8;
+      border-radius: 12px;
+      padding: 14px 10px;
+      height: 70%;
+      width: 300px;
+      max-width: 300px;
+      justify-self: start;
+      display: flex; flex-direction: column;
+    }
+    .drive-title {
+      font-size: 20px; font-weight: 900; color: #1d4ed8; text-align: center; margin-bottom: 14px;
+    }
+    .drive-body {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .browser {
+      background: #f8fafc;
+      border: 2.5px solid #64748b;
+      border-radius: 10px;
+      width: 120px;
+      overflow: hidden;
+      box-shadow: 3px 4px 0 #cbd5e1;
+    }
+    .browser .bar {
+      background: #e2e8f0; padding: 5px 8px; font-size: 12px; font-weight: 700; color: #475569;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    .browser .pane {
+      padding: 18px 8px; text-align: center; font-size: 15px; font-weight: 800; line-height: 1.35;
+    }
+    .bidir .line {
+      width: 28px; height: 4px; background: #2563eb; position: relative;
+    }
+    .bidir .line::before,
+    .bidir .line::after {
+      content: "";
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 0; height: 0;
+    }
+    .bidir .line::before {
+      left: -1px;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      border-right: 10px solid #2563eb;
+    }
+    .bidir .line::after {
+      right: -1px;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      border-left: 10px solid #2563eb;
+    }
+    .engine {
+      background: #fff;
+      border: 2.5px solid #334155;
+      border-radius: 10px;
+      padding: 16px 10px;
+      font-size: 15px; font-weight: 800;
+      box-shadow: 3px 4px 0 #cbd5e1;
+      text-align: center;
+      min-width: 72px;
+    }
+    .pc-flow {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      width: 100%;
+      padding: 0 4px;
+    }
+
+    .flow-arrows {
+      position: absolute;
+      inset: 0;
+      width: 1680px;
+      height: 750px;
+      pointer-events: none;
+      z-index: 100;
+      overflow: visible;
+    }
+
+    .steps {
+      flex: 0 0 auto;
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 20px;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .steps-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 0;
+    }
+    .step-card {
+      background: #f8fafc;
+      border: 2px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 14px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      flex: 0 0 auto;
+      min-height: 0;
+    }
+    .step-card .num-row {
+      display: flex; align-items: center; gap: 8px;
+      flex: 0 0 150px;
+    }
+    .step-card .step.lg { width: 28px; height: 28px; font-size: 14px; flex: 0 0 auto; }
+    .step-card h3 {
+      font-size: 15px; font-weight: 900; color: #1e3a8a; line-height: 1.2;
+      white-space: nowrap;
+    }
+    .step-card p {
+      font-size: 13px; line-height: 1.3; font-weight: 600; color: #334155;
+      flex: 1 1 auto;
+    }
+    .foot {
+      margin-top: 4px;
+      font-size: 11px; color: #64748b; text-align: right;
+    }
+    svg { display: block; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="file" viewBox="0 0 40 48">
+      <path d="M6 4h18l12 12v28a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z" fill="#fff" stroke="#2563eb" stroke-width="2"/>
+      <path d="M24 4v11h12" fill="none" stroke="#2563eb" stroke-width="2"/>
+      <path d="M11 24h18M11 31h12" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="server" viewBox="0 0 64 56">
+      <rect x="6" y="4" width="52" height="14" rx="3" fill="#e2e8f0" stroke="#334155" stroke-width="2"/>
+      <rect x="6" y="21" width="52" height="14" rx="3" fill="#cbd5e1" stroke="#334155" stroke-width="2"/>
+      <rect x="6" y="38" width="52" height="14" rx="3" fill="#94a3b8" stroke="#334155" stroke-width="2"/>
+      <circle cx="16" cy="11" r="2.5" fill="#22c55e"/>
+      <circle cx="16" cy="28" r="2.5" fill="#22c55e"/>
+      <circle cx="16" cy="45" r="2.5" fill="#22c55e"/>
+      <rect x="24" y="9" width="26" height="4" rx="1" fill="#64748b"/>
+      <rect x="24" y="26" width="26" height="4" rx="1" fill="#64748b"/>
+      <rect x="24" y="43" width="26" height="4" rx="1" fill="#475569"/>
+    </symbol>
+    <symbol id="person" viewBox="0 0 40 40">
+      <circle cx="20" cy="12" r="8" fill="#64748b"/>
+      <path d="M6 36c2-10 10-14 14-14s12 4 14 14" fill="#64748b"/>
+    </symbol>
+    <symbol id="pc" viewBox="0 0 80 64">
+      <rect x="8" y="4" width="64" height="42" rx="4" fill="#e2e8f0" stroke="#334155" stroke-width="2.5"/>
+      <rect x="14" y="10" width="52" height="30" fill="#93c5fd"/>
+      <rect x="28" y="48" width="24" height="4" fill="#334155"/>
+      <rect x="20" y="52" width="40" height="6" rx="2" fill="#64748b"/>
+    </symbol>
+  </svg>
+
+  <div class="slide">
+    <div class="header">
+      <h1>AIDPC 想定の作業フロー（確認用）</h1>
+      <div class="purpose">閉域網でファイルを出し、USB経由でネットPCへ<br>ブラウザからアップロード〜結果取得まで</div>
+    </div>
+
+    <div class="diagram-wrap">
+      <div class="main">
+        <div class="zone closed">
+          <div class="zone-title">閉域網</div>
+          <div style="position:absolute;top:12px;right:12px"><div class="step">1</div></div>
+          <div class="sys-row">
+            <div class="sys-col">
+              <div class="sys-box" data-server="karte">
+                <svg width="48" height="42"><use href="#server"/></svg>
+                <div>電子カルテ</div>
+              </div>
+              <div class="v-link"></div>
+              <div class="file-icon" data-file="karte">
+                <svg width="36" height="42"><use href="#file"/></svg>
+                <div class="name">カルテ記事ファイル</div>
+                <div class="note">月初〜前日・1ファイル</div>
+              </div>
+              <div class="col-spacer"></div>
+            </div>
+            <div class="sys-col">
+              <div class="sys-box" data-server="ef">
+                <svg width="48" height="42"><use href="#server"/></svg>
+                <div>レセプト</div>
+              </div>
+              <div class="v-link"></div>
+              <div class="file-icon" data-file="ef">
+                <svg width="36" height="42"><use href="#file"/></svg>
+                <div class="name">EF統合ファイル</div>
+                <div class="note">月初〜前日・1ファイル</div>
+              </div>
+              <div class="col-spacer"></div>
+            </div>
+            <div class="sys-col">
+              <div class="sys-box" data-server="patient">
+                <svg width="48" height="42"><use href="#server"/></svg>
+                <div>DWH</div>
+              </div>
+              <div class="v-link"></div>
+              <div class="file-icon" data-file="patient">
+                <svg width="36" height="42"><use href="#file"/></svg>
+                <div class="name">患者一覧</div>
+                <div class="note">仮 <span class="or">or</span> 入院時確定<br>＋ 退院確定</div>
+              </div>
+              <div class="col-spacer"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bridge">
+          <div class="step">2</div>
+          <div class="person-block">
+            <svg width="36" height="36"><use href="#person"/></svg>
+            <div>現場担当</div>
+          </div>
+          <div class="usb-box" id="usbBox">USB</div>
+          <div class="step">3</div>
+        </div>
+
+        <div class="zone net">
+          <div class="zone-title">インターネット</div>
+          <div class="net-inner">
+            <div class="pc-box" id="pcBox">
+              <svg width="64" height="52"><use href="#pc"/></svg>
+              <div class="ttl">インターネット<br>接続PC</div>
+              <div class="sub">ブラウザ利用</div>
+            </div>
+            <div class="pc-flow">
+              <div class="step">4</div>
+              <div class="h-arrow"><div class="shaft"></div><div class="head"></div></div>
+              <div class="step">5</div>
+              <div class="h-arrow" style="transform:scaleX(-1)"><div class="shaft"></div><div class="head"></div></div>
+            </div>
+            <div class="drive">
+              <div class="drive-title">Medup AI DPC</div>
+              <div class="drive-body">
+                <div class="browser">
+                  <div class="bar">● ● ●　ブラウザ</div>
+                  <div class="pane">ファイル<br>アップロード</div>
+                </div>
+                <div class="bidir"><div class="line"></div></div>
+                <div class="engine">エンジン</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <svg class="flow-arrows" id="flowArrows" viewBox="0 0 1680 750" aria-hidden="true">
+          <defs>
+            <marker id="ah" markerWidth="10" markerHeight="10" refX="9" refY="3.5" orient="auto">
+              <path d="M0,0 L9,3.5 L0,7 Z" fill="#2563eb"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="steps-col">
+        <div class="step-card">
+          <div class="num-row"><div class="step lg">1</div><h3>データ出力</h3></div>
+          <p>院内システム（電子カルテ／レセプト／DWH）から、カルテ記事ファイル・EF統合ファイル・患者一覧を出力する。</p>
+        </div>
+        <div class="step-card">
+          <div class="num-row"><div class="step lg">2</div><h3>USB書き出し</h3></div>
+          <p>出力したファイルをUSBに書き出す（閉域網内の作業）。</p>
+        </div>
+        <div class="step-card">
+          <div class="num-row"><div class="step lg">3</div><h3>ネットPCへコピー</h3></div>
+          <p>USBをインターネット接続PCへ運び、ファイルをコピーする。</p>
+        </div>
+      </div>
+      <div class="steps-col">
+        <div class="step-card">
+          <div class="num-row"><div class="step lg">4</div><h3>アップロード</h3></div>
+          <p>Webブラウザでメダップサイト（Medup AI DPC）にファイルをアップロードする。</p>
+        </div>
+        <div class="step-card">
+          <div class="num-row"><div class="step lg">5</div><h3>結果取得</h3></div>
+          <p>計算結果をダウンロードする。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">藤沢湘南台病院 現地確認用 ／ 2026-09-10更新</div>
+  </div>
+  <script>
+    function drawFlowArrows() {
+      const main = document.querySelector(".main");
+      const svg = document.getElementById("flowArrows");
+      const usb = document.getElementById("usbBox");
+      const pc = document.getElementById("pcBox");
+      if (!main || !svg || !usb || !pc) return;
+
+      const mr = main.getBoundingClientRect();
+      const w = mr.width;
+      const h = mr.height;
+      svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      svg.style.width = w + "px";
+      svg.style.height = h + "px";
+
+      const toLocal = (el, edge) => {
+        const r = el.getBoundingClientRect();
+        const x =
+          edge === "right" ? r.right - mr.left :
+          edge === "left" ? r.left - mr.left :
+          edge === "center" ? r.left + r.width / 2 - mr.left :
+          r.left - mr.left;
+        const y =
+          edge === "top" ? r.top - mr.top :
+          edge === "bottom" ? r.bottom - mr.top :
+          r.top + r.height / 2 - mr.top;
+        return { x, y };
+      };
+
+      let defs = svg.querySelector("defs");
+      svg.innerHTML = "";
+      if (defs) svg.appendChild(defs);
+      else {
+        defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        defs.innerHTML = `<marker id="ah" markerWidth="10" markerHeight="10" refX="9" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#2563eb"/></marker>`;
+        svg.appendChild(defs);
+      }
+
+      const usbL = toLocal(usb, "left");
+      const usbR = toLocal(usb, "right");
+      const usbC = toLocal(usb, "center");
+      const pcL = toLocal(pc, "left");
+
+      ["karte", "ef", "patient"].forEach((key) => {
+        const server = document.querySelector(`[data-server="${key}"]`);
+        const file = document.querySelector(`[data-file="${key}"] svg`) || document.querySelector(`[data-file="${key}"]`);
+        if (!server || !file) return;
+        const x = toLocal(server, "center").x;
+        const y1 = toLocal(server, "bottom").y + 2;
+        const y2 = toLocal(file, "top").y + 14;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${x} ${y1} L ${x} ${y2}`);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", "#2563eb");
+        path.setAttribute("stroke-width", "4");
+        path.setAttribute("marker-end", "url(#ah)");
+        svg.appendChild(path);
+      });
+
+      document.querySelectorAll("[data-file]").forEach((f, i) => {
+        // ファイル名・注釈の下からいったん下がってからUSBへ（文字に被らない）
+        const startX = toLocal(f, "center").x;
+        const startY = toLocal(f, "bottom").y + 10;
+        const endY = usbC.y + (i - 1) * 6;
+        const midY = Math.max(startY, endY);
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${startX} ${startY} L ${startX} ${midY} L ${usbL.x + 8} ${endY}`);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", "#2563eb");
+        path.setAttribute("stroke-width", "4");
+        path.setAttribute("marker-end", "url(#ah)");
+        svg.appendChild(path);
+      });
+
+      const path2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path2.setAttribute("d", `M ${usbR.x - 8} ${usbC.y} L ${pcL.x + 48} ${usbC.y}`);
+      path2.setAttribute("fill", "none");
+      path2.setAttribute("stroke", "#2563eb");
+      path2.setAttribute("stroke-width", "4");
+      path2.setAttribute("marker-end", "url(#ah)");
+      svg.appendChild(path2);
+    }
+    window.addEventListener("load", drawFlowArrows);
+    window.addEventListener("resize", drawFlowArrows);
+    drawFlowArrows();
+    requestAnimationFrame(() => {
+      drawFlowArrows();
+      requestAnimationFrame(drawFlowArrows);
+    });
+    setTimeout(drawFlowArrows, 100);
+    setTimeout(drawFlowArrows, 400);
+  </script>
+</body>
+</html>

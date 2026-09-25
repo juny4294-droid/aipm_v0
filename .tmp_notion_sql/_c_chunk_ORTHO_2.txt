@@ -1,0 +1,77 @@
+ants` AS odt
+    ON odt.own_department_id = dept.id
+   AND odt.tenant_id = r.tenant_id
+  CROSS JOIN params AS p
+  WHERE r.tenant_id = p.tenant_id
+    AND dept.name = p.target_department_name
+    AND r.reverse_referral_date BETWEEN p.period_start AND p.period_end
+)
+
+SELECT
+  t.patient_id,
+  t.medical_service_category,
+  t.visit_count_in_specialty,
+  IF(ox2.patient_id IS NOT NULL, 1, 0) AS ox2_noninvasive_reduction_flag,
+  IF(ox3.patient_id IS NOT NULL, 1, 0) AS ox3_reverse_referred_flag
+FROM target_patients AS t
+LEFT JOIN ox2_noninvasive_reduction AS ox2
+  USING (patient_id)
+LEFT JOIN ox3_reverse_referred AS ox3
+  USING (patient_id)
+WHERE ox2.patient_id IS NULL
+  AND ox3.patient_id IS NULL
+ORDER BY t.patient_id
+;
+
+
+-- ============================================================================
+-- B. ファネル件数（上のクエリをコメントアウトして単体実行）
+-- ============================================================================
+/*
+WITH
+params AS (
+  SELECT
+    274 AS tenant_id,
+    DATE '2025-08-01' AS period_start,
+    DATE '2026-07-31' AS period_end,
+    '整形外科' AS target_department_name
+),
+ortho_doctors AS (
+  SELECT
+    SAFE_CAST(d.tenant_id AS INT64) AS tenant_id,
+    d.doctor_code,
+    d.department_name
+  FROM `medup-foro.dpc_patient_records_prd.dbt_int_doctor_department` AS d
+  CROSS JOIN params AS p
+  WHERE SAFE_CAST(d.tenant_id AS INT64) = p.tenant_id
+    AND d.department_name = p.target_department_name
+),
+ortho_ef AS (
+  SELECT
+    CAST(SAFE_CAST(ef.patient_id AS INT64) AS STRING) AS patient_id,
+    ef.outpatient_date.value AS outpatient_date,
+    ef.receipt_code
+  FROM `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+  INNER JOIN ortho_doctors AS od
+    ON ef.doctor_code = od.doctor_code
+   AND SAFE_CAST(ef.tenant_id AS INT64) = od.tenant_id
+  CROSS JOIN params AS p
+  WHERE ef.tenant_id = p.tenant_id
+    AND ef.data_type != 'SY'
+    AND ef.action_detail_number = 0
+    AND ef.outpatient_date.value BETWEEN p.period_start AND p.period_end
+),
+patient_flags AS (
+  SELECT
+    patient_id,
+    COUNT(DISTINCT outpatient_date) AS visit_count_in_specialty,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '111') THEN 1 ELSE 0 END) AS first_visit_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '112') THEN 1 ELSE 0 END) AS follow_up_visit_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '140') THEN 1 ELSE 0 END) AS procedure_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '150') THEN 1 ELSE 0 END) AS surgery_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '13') THEN 1 ELSE 0 END) AS injection_flag,
+    MAX(CASE WHEN receipt_code IN ('170033410','170012070','170011810','170035010','170020110','170020470') THEN 1 ELSE 0 END) AS ct_imaging_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '170') THEN 1 ELSE 0 END) AS imaging_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '160') THEN 1 ELSE 0 END) AS exam_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '12') THEN 1 ELSE 0 END) AS medication_flag,
+    MAX(CASE WHEN receipt_code IN ('180756010','180024710') THEN 1 

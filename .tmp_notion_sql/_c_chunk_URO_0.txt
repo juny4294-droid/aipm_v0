@@ -1,0 +1,94 @@
+-- ############################################################################
+-- 泌尿器科｜逆紹介候補抽出（鳥取県立中央 / tenant 274）
+--
+-- 期間     : 2025-08-01 〜 2026-07-31（直近1年。年度ではない）
+-- 親集合   : outpatient_ef（受診日で期間絞り）+ dbt_int_doctor_department
+-- 対象     : U1 ∧ U2 ∧ (U3 ∨ U4 ∨ U5)
+--            U3: 最大行為=4.CT/MRI かつ 泌尿受診 ≤2回
+--            U4: 最大行為=5.検査 かつ 泌尿受診 ≤5回
+--            U5: 最大行為 IN (6.投薬, 8.再診)
+-- 除外     : UX1 併科 / UX2 期間内MRI / UX3 鳥取大学→泌尿紹介
+--            UX4 前立腺がん術後5年未満 / UX6 泌尿から逆紹介済
+--            ※ UX5（積極的監視疑い）は 8/25合意により 除外もしない・フラグも付けない
+--
+-- 参照
+--   - Notion: 20260807_抽出条件確認用_3診療科
+--   - 確認スライド v13 / 抽出条件差分
+--
+-- 注意
+--   - 患者ID: CAST(SAFE_CAST(x AS INT64) AS STRING)
+--   - 入院手術Kは kcode_operation_1 のみ（_2以降はスキーマに無い）
+-- ############################################################################
+
+-- ---------------------------------------------------------------------------
+-- プローブ（任意）
+-- ---------------------------------------------------------------------------
+/*
+-- 泌尿の医師マスタ表記
+SELECT department_name, COUNT(*) AS n
+FROM `medup-foro.dpc_patient_records_prd.dbt_int_doctor_department`
+WHERE SAFE_CAST(tenant_id AS INT64) = 274
+  AND department_name LIKE '%泌尿%'
+GROUP BY department_name;
+
+-- 鳥取大学の紹介元（名称マスタは tenant_29_view 経由で確認。ID確定済: 75462）
+SELECT
+  mi.medical_institution_id,
+  mi.name,
+  COUNT(*) AS n
+FROM `medup-foro.foro_prd.public_referrals` AS r
+INNER JOIN `medup-foro.foro_prd.tenant_29_view_medical_institutions` AS mi
+  ON mi.medical_institution_id = r.medical_institution_id_from
+WHERE r.tenant_id = 274
+  AND mi.name LIKE '%鳥取大学%'
+GROUP BY mi.medical_institution_id, mi.name
+ORDER BY n DESC;
+*/
+
+-- ============================================================================
+-- A. 候補リスト本体
+-- ============================================================================
+WITH
+params AS (
+  SELECT
+    274 AS tenant_id,
+    DATE '2025-08-01' AS period_start,
+    DATE '2026-07-31' AS period_end,
+    '泌尿器科' AS target_department_name,
+    -- UX3: 鳥取大学医学部附属病院（tenant_29_view で名称確認済）
+    75462 AS tottori_univ_medical_institution_id,
+    -- UX4: 退院日から5年未満（期間末日基準）
+    DATE_SUB(DATE '2026-07-31', INTERVAL 5 YEAR) AS prostate_surgery_lookback_start
+),
+
+mri_codes AS (
+  SELECT code FROM UNNEST([
+    '170020110',  -- MRI 1.5T以上3T未満
+    '170033510'   -- MRI 3T以上
+  ]) AS code
+),
+
+uro_doctors AS (
+  SELECT
+    SAFE_CAST(d.tenant_id AS INT64) AS tenant_id,
+    d.doctor_code,
+    d.department_name
+  FROM `medup-foro.dpc_patient_records_prd.dbt_int_doctor_department` AS d
+  CROSS JOIN params AS p
+  WHERE SAFE_CAST(d.tenant_id AS INT64) = p.tenant_id
+    AND d.department_name = p.target_department_name
+),
+
+-- 期間内・泌尿医師担当の外来EF（Eレコード）
+uro_ef AS (
+  SELECT
+    ef.tenant_id,
+    CAST(SAFE_CAST(ef.patient_id AS INT64) AS STRING) AS patient_id,
+    ef.doctor_code,
+    ud.department_name,
+    ef.outpatient_date.value AS outpatient_date,
+    ef.receipt_code,
+    ef.action_name
+  FROM `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+  INNER JOIN uro_doctors AS ud
+    ON ef.doc

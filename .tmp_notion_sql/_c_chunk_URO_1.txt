@@ -1,0 +1,83 @@
+tor_code = ud.doctor_code
+   AND SAFE_CAST(ef.tenant_id AS INT64) = ud.tenant_id
+  CROSS JOIN params AS p
+  WHERE ef.tenant_id = p.tenant_id
+    AND ef.data_type != 'SY'
+    AND ef.action_detail_number = 0
+    AND ef.outpatient_date.value BETWEEN p.period_start AND p.period_end
+),
+
+-- 期間内・全科EF（併科・MRI判定用）
+ef_period AS (
+  SELECT
+    CAST(SAFE_CAST(ef.patient_id AS INT64) AS STRING) AS patient_id,
+    ef.doctor_code,
+    IFNULL(d.department_name, '未割当') AS department_name,
+    ef.outpatient_date.value AS outpatient_date,
+    ef.receipt_code
+  FROM `medup-foro.dpc_patient_records_prd.outpatient_ef` AS ef
+  LEFT JOIN `medup-foro.dpc_patient_records_prd.dbt_int_doctor_department` AS d
+    ON ef.doctor_code = d.doctor_code
+   AND SAFE_CAST(ef.tenant_id AS INT64) = SAFE_CAST(d.tenant_id AS INT64)
+  CROSS JOIN params AS p
+  WHERE ef.tenant_id = p.tenant_id
+    AND ef.data_type != 'SY'
+    AND ef.action_detail_number = 0
+    AND ef.outpatient_date.value BETWEEN p.period_start AND p.period_end
+),
+
+-- 患者×泌尿：行為フラグ・受診日数（サマリー定義に準拠）
+patient_flags AS (
+  SELECT
+    patient_id,
+    COUNT(DISTINCT outpatient_date) AS visit_count_in_specialty,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '111') THEN 1 ELSE 0 END) AS first_visit_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '112') THEN 1 ELSE 0 END) AS follow_up_visit_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '140') THEN 1 ELSE 0 END) AS procedure_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '150') THEN 1 ELSE 0 END) AS surgery_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '13') THEN 1 ELSE 0 END) AS injection_flag,
+    MAX(
+      CASE
+        WHEN receipt_code IN (
+          '170033410', '170012070', '170011810',
+          '170035010', '170020110', '170020470'
+        ) THEN 1
+        ELSE 0
+      END
+    ) AS ct_imaging_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '170') THEN 1 ELSE 0 END) AS imaging_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '160') THEN 1 ELSE 0 END) AS exam_flag,
+    MAX(CASE WHEN STARTS_WITH(receipt_code, '12') THEN 1 ELSE 0 END) AS medication_flag,
+    MAX(
+      CASE
+        WHEN receipt_code IN ('180756010', '180024710') THEN 1
+        ELSE 0
+      END
+    ) AS rehabilitation_flag
+  FROM uro_ef
+  GROUP BY patient_id
+),
+
+-- 同期間・泌尿での入院（様式1）。カテゴリ「1.入院」用
+admission_uro AS (
+  SELECT DISTINCT
+    CAST(SAFE_CAST(h.patient_number AS INT64) AS STRING) AS patient_id
+  FROM `medup-foro.foro_prd.public_hospital_admissions` AS h
+  LEFT JOIN `medup-foro.foro_prd.public_dpc_specialty_codes` AS c
+    ON c.code = h.dpc_specialty_code
+  CROSS JOIN params AS p
+  WHERE h.tenant_id = p.tenant_id
+    AND (c.name = p.target_department_name OR c.name LIKE '%泌尿%')
+    AND (
+      h.admission_started_on BETWEEN p.period_start AND p.period_end
+      OR h.admission_ended_on BETWEEN p.period_start AND p.period_end
+    )
+),
+
+categorized AS (
+  SELECT
+    f.patient_id,
+    f.visit_count_in_specialty,
+    CASE
+      WHEN a.patient_id IS NOT NULL THEN '1.入院'
+      WHEN f.first_visit_flag = 1 

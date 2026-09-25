@@ -1,0 +1,101 @@
+-- ############################################################################
+-- 脳神経外科｜逆紹介候補抽出（鳥取県立中央 / tenant 274）
+--
+-- 期間     : 2025-08-01 〜 2026-07-31（直近1年）
+-- 親集合   : outpatient_ef + dbt_int_doctor_department（担当診療科=脳神経外科）
+-- 対象     : N1 ∧ N2 ∧ N3（単純MRIフォロー。1.5T/3.0Tとも候補＝磁場フィルタなし）
+-- 除外     : NX1〜NX8 のいずれか
+--            ※ NX3 = 神部外来予約のみ（DPC 010010・病名は使わない）
+--              → 2026-08-26時点: tenant 274 の外来予約は未投入のため NX3 は適用しない（常に0）
+--            ※ NX4 から K178-3（150301110 / 150301210）を除外
+--
+-- 参照
+--   - Notion: 20260807_抽出条件確認用_3診療科（病院確認）
+--   - 確認スライド v12 / 抽出条件差分
+--
+-- 注意
+--   - 患者ID: CAST(SAFE_CAST(x AS INT64) AS STRING) で正規化（整形と同方針）
+--   - NX3: 予約投入後に foro_prd.public_op_optimizer_outpatient_reservations で有効化
+-- ############################################################################
+
+-- ---------------------------------------------------------------------------
+-- プローブ（任意）: 神部の表記確認
+-- ※ op_optimizer_prd は別リージョンの可能性あり。foro_prd（Datastream）を使う
+-- ---------------------------------------------------------------------------
+/*
+SELECT d.name AS doctor_name, COUNT(*) AS n
+FROM `medup-foro.foro_prd.public_op_optimizer_outpatient_reservations` AS r
+INNER JOIN `medup-foro.foro_prd.public_op_optimizer_doctors` AS d
+  ON d.id = r.doctor_id
+ AND d.tenant_id = r.tenant_id
+WHERE r.tenant_id = 274
+  AND d.name LIKE '%神部%'
+GROUP BY d.name
+ORDER BY n DESC;
+*/
+
+-- ============================================================================
+-- A. 候補リスト本体
+-- ============================================================================
+WITH
+params AS (
+  SELECT
+    274 AS tenant_id,
+    DATE '2025-08-01' AS period_start,
+    DATE '2026-07-31' AS period_end,
+    '脳神経外科' AS target_department_name,
+    -- NX7: スライド「直近5年以内の入院」（術後6年未満の簡便判定）
+    DATE_SUB(DATE '2026-07-31', INTERVAL 5 YEAR) AS sah_lookback_start
+),
+
+mri_codes AS (
+  SELECT code FROM UNNEST([
+    '170020110',  -- MRI 1.5T以上3T未満
+    '170033510'   -- MRI 3T以上
+  ]) AS code
+),
+
+-- NX2: CTのみ（Notion一覧からMRI混在コードを除いたもの）
+ct_codes AS (
+  SELECT code FROM UNNEST([
+    '170011710', '170011810', '170012070', '170027310', '170028610',
+    '170033410', '170034910', '170038810', '170038910', '170040210',
+    '170040250', '170040410', '170040610', '170704810', '170704910',
+    '170901710'
+  ]) AS code
+),
+
+-- NX4: 血管内（K178-3 除外済み）
+vascular_receipt_codes AS (
+  SELECT code FROM UNNEST([
+    '150254910',  -- K178 1箇所
+    '150344410',  -- K178 2箇所以上
+    '150355410',  -- K178 脳血管内ステント
+    '150273510',  -- K178-2
+    '150380850',  -- K178-5
+    '150337110',  -- K609-2
+    '150453450',  -- K609-2（薬事承認機器）
+    '150372510'   -- K178-4
+  ]) AS code
+),
+
+platelet_codes AS (
+  SELECT code FROM UNNEST([
+    '160238710',
+    '160238610'
+  ]) AS code
+),
+
+epilepsy_codes AS (
+  SELECT code FROM UNNEST([
+    '113002850',
+    '113029610'
+  ]) AS code
+),
+
+neuro_doctors AS (
+  SELECT
+    SAFE_CAST(d.tenant_id AS INT64) AS tenant_id,
+    d.doctor_code,
+    d.department_name
+  FROM `medup-foro.dpc_patient_records_prd.dbt_int_doctor_department` 

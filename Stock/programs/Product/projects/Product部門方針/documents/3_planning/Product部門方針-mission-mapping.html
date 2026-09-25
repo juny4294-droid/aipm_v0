@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Product部門 — ミッションと担当</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+      background: #fff;
+      color: #1a1a1a;
+      width: 1600px;
+      padding: 28px 36px 32px;
+    }
+    h1 {
+      font-size: 34px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+    .subtitle {
+      font-size: 15px;
+      color: #555;
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+    .main {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .teams-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+    .panel {
+      border: 2px solid #ccc;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+      min-width: 0;
+    }
+    .panel.teams .panel-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding: 8px 10px;
+      font-size: 15px;
+    }
+    .panel.teams .panel-header .row1 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .panel.teams .panel-header .outcome {
+      margin-left: 0;
+      max-width: 100%;
+      text-align: left;
+      font-size: 10.5px;
+      line-height: 1.35;
+      font-weight: 500;
+      opacity: 0.95;
+    }
+    .panel-header .tag {
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255,255,255,0.25);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .panel-header {
+      padding: 10px 14px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .panel-header .outcome {
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.95;
+      margin-left: auto;
+      text-align: right;
+      max-width: 52%;
+      line-height: 1.35;
+    }
+    .fde .panel-header { background: #2f6fed; border-color: #2f6fed; }
+    .fde { border-color: #2f6fed; }
+    .dev .panel-header { background: #2e9b57; border-color: #2e9b57; }
+    .dev { border-color: #2e9b57; }
+    .dataops .panel-header { background: #e07a1a; border-color: #e07a1a; }
+    .dataops { border-color: #e07a1a; }
+    .cross .panel-header { background: #6b5b95; border-color: #6b5b95; }
+    .cross { border-color: #6b5b95; }
+
+    table { width: 100%; border-collapse: collapse; }
+    .panel.teams table { font-size: 11.5px; }
+    .cross .panel-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding: 8px 12px;
+      font-size: 15px;
+    }
+    .cross .panel-header .row1 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .cross .panel-header .outcome {
+      margin-left: 0;
+      max-width: 100%;
+      text-align: left;
+      font-size: 10.5px;
+      line-height: 1.35;
+    }
+    .cross-tables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-top: 1px solid #d8d8d8;
+    }
+    .cross-tables table {
+      font-size: 11.5px;
+    }
+    .cross-tables th,
+    .cross-tables td {
+      padding: 4px 6px;
+    }
+    .cross-tables th:nth-child(2),
+    .cross-tables th:nth-child(3),
+    .cross-tables td.now,
+    .cross-tables td.future {
+      width: 22%;
+      max-width: 100px;
+      font-size: 11px;
+    }
+    .cross-tables td.mission {
+      font-weight: 600;
+      background: #fafafa;
+      font-size: 11px;
+    }
+    .cross-tables table + table {
+      border-left: 1px solid #d8d8d8;
+    }
+    th {
+      background: #f5f5f5;
+      font-weight: 700;
+      text-align: left;
+    }
+    .panel.teams th:nth-child(2),
+    .panel.teams th:nth-child(3),
+    .panel.teams td.now,
+    .panel.teams td.future {
+      width: 24%;
+      max-width: 88px;
+      font-size: 11px;
+    }
+    .panel.teams td.mission {
+      font-weight: 600;
+      background: #fafafa;
+      font-size: 11px;
+      line-height: 1.3;
+    }
+    th, td {
+      border: 1px solid #d8d8d8;
+      vertical-align: top;
+      line-height: 1.35;
+    }
+    .panel.teams th,
+    .panel.teams td { padding: 5px 5px; }
+    .legend {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #666;
+      text-align: right;
+    }
+    strong { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Product部門 — ミッションと担当</h1>
+  <p class="subtitle">
+    現時点（2026-08）と 1年後（小山・鈴木入社・馬場退職後）の担当マッピング　｜　（）内は補助・レビュー役
+  </p>
+
+  <div class="main">
+  <div class="teams-row">
+  <div class="panel teams fde">
+    <div class="panel-header">
+      <div class="row1"><span>FDE</span><span class="tag">探索</span></div>
+      <span class="outcome">顧客課題を解決するプロダクトを提供する</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>ミッション</th><th>現</th><th>1年後</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mission">チーム運営・案件PM</td><td class="now"><strong>山田</strong></td><td class="future"><strong>小山</strong></td></tr>
+        <tr><td class="mission">CS連携</td><td class="now"><strong>黒川</strong></td><td class="future"><strong>小山</strong>＋<strong>鈴木</strong>（<strong>黒川</strong>）</td></tr>
+        <tr><td class="mission">顧客調整</td><td class="now"><strong>黒川</strong></td><td class="future"><strong>小山</strong>＋<strong>鈴木</strong>（<strong>黒川</strong>）</td></tr>
+        <tr><td class="mission">設計・実装</td><td class="now"><strong>黒川</strong></td><td class="future"><strong>鈴木</strong>＋<strong>黒川</strong>（<strong>小山</strong>）</td></tr>
+        <tr><td class="mission">プロダクト改善</td><td class="now"><strong>黒川</strong></td><td class="future"><strong>黒川</strong>＋<strong>鈴木</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel teams dev">
+    <div class="panel-header">
+      <div class="row1"><span>Dev</span><span class="tag">継続</span></div>
+      <span class="outcome">プロダクト（foro等）の価値を守り、向上させる</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>ミッション</th><th>現</th><th>1年後</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mission">チームリード</td><td class="now"><strong>山田</strong></td><td class="future"><strong>康</strong></td></tr>
+        <tr><td class="mission">機能改善・障害対応</td><td class="now"><strong>廣</strong>＋新保</td><td class="future"><strong>廣</strong>＋新保</td></tr>
+        <tr><td class="mission">データ修正・マスタ管理</td><td class="now"><strong>山田</strong>＋<strong>康</strong></td><td class="future"><strong>廣</strong>＋新保</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel teams dataops">
+    <div class="panel-header">
+      <div class="row1"><span>DataOps</span><span class="tag">定例</span></div>
+      <span class="outcome">病院データを、使える状態で安定して届ける</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>ミッション</th><th>現</th><th>1年後</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mission">チームリード</td><td class="now"><strong>黒川</strong>→<strong>山田</strong></td><td class="future"><strong>黒川</strong></td></tr>
+        <tr><td class="mission">定例業務コントロール</td><td class="now"><strong>藤原</strong></td><td class="future"><strong>藤原</strong></td></tr>
+        <tr><td class="mission">CS連携・エスカレーション</td><td class="now"><strong>藤原</strong></td><td class="future"><strong>藤原</strong></td></tr>
+        <tr><td class="mission">Dev/foro連携</td><td class="now"><strong>黒川</strong>→<strong>山田</strong></td><td class="future"><strong>藤原</strong>＋<strong>廣</strong></td></tr>
+        <tr><td class="mission">業務効率化・改善</td><td class="now">—</td><td class="future"><strong>黒川</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  </div>
+
+  <div class="panel cross">
+    <div class="panel-header">
+      <div class="row1"><span>横断</span><span class="tag">共通土台・PdM・デザイン</span></div>
+      <span class="outcome">3チームが回る技術土台と PdM・デザイン基盤を維持する</span>
+    </div>
+    <div class="cross-tables">
+    <table>
+      <thead>
+        <tr><th>ミッション</th><th>現</th><th>1年後</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mission">AI駆動開発環境</td><td class="now">—</td><td class="future">T/L＋<strong>鈴木</strong></td></tr>
+        <tr><td class="mission">技術選定</td><td class="now"><strong>馬場</strong></td><td class="future">T/L</td></tr>
+        <tr><td class="mission">セキュリティ</td><td class="now"><strong>馬場</strong></td><td class="future"><strong>小山</strong></td></tr>
+        <tr><td class="mission">infra</td><td class="now"><strong>馬場</strong></td><td class="future"><strong>小山</strong>＋T/L</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <thead>
+        <tr><th>ミッション</th><th>現</th><th>1年後</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mission">CI/CD</td><td class="now"><strong>馬場</strong></td><td class="future"><strong>廣</strong>＋新保</td></tr>
+        <tr><td class="mission">PdM</td><td class="now"><strong>山田</strong></td><td class="future"><strong>山田</strong></td></tr>
+        <tr><td class="mission">デザイン</td><td class="now"><strong>田中</strong></td><td class="future"><strong>三保谷</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+  </div>
+
+  <p class="legend">Product部門方針 2/2 — ミッションと担当（2026-08-31）</p>
+</body>
+</html>
