@@ -145,37 +145,41 @@ Private Sub ImportFile(ByVal sheetName As String, ByVal filterSpec As String, By
     If VarType(picked) = vbBoolean Then Exit Sub
 
     Application.ScreenUpdating = False
-    Dim srcBook As Workbook
-    Dim openedText As Boolean
-    openedText = False
-    If LCase$(Right$(CStr(picked), 4)) = ".csv" Then
-        Workbooks.OpenText Filename:=CStr(picked), Origin:=65001, DataType:=xlDelimited, _
-            TextQualifier:=xlDoubleQuote, ConsecutiveDelimiter:=False, _
-            Tab:=False, Semicolon:=False, Comma:=True, Space:=False, Other:=False
-        Set srcBook = ActiveWorkbook
-        openedText = True
+    Dim isCsv As Boolean
+    isCsv = (LCase$(Right$(CStr(picked), 4)) = ".csv")
+    Dim data As Variant
+    Dim lastR As Long
+    Dim lastC As Long
+    lastR = 0
+    lastC = 0
+    If isCsv Then
+        data = ReadCsv(CStr(picked))
+        If IsArray(data) Then
+            lastR = UBound(data, 1)
+            lastC = UBound(data, 2)
+        End If
     Else
+        Dim srcBook As Workbook
         Set srcBook = Workbooks.Open(Filename:=CStr(picked), ReadOnly:=True)
+        Dim src As Worksheet
+        Set src = srcBook.Worksheets(1)
+        lastR = LastRow(src)
+        lastC = LastCol(src)
+        If lastR >= 1 And lastC >= 1 Then data = src.Range("A1").Resize(lastR, lastC).Value
+        srcBook.Close SaveChanges:=False
+    End If
+    If lastR < 1 Or lastC < 1 Then
+        MsgBox "ファイルにセルがありません。", vbExclamation
+        GoTo Done
     End If
 
-    Dim src As Worksheet
-    Set src = srcBook.Worksheets(1)
     Dim dst As Worksheet
     Set dst = SheetOrNew(sheetName)
     If dst.AutoFilterMode Then dst.AutoFilterMode = False
     dst.Cells.Clear
-
-    Dim lastR As Long
-    Dim lastC As Long
-    lastR = LastRow(src)
-    lastC = LastCol(src)
-    If lastR < 1 Or lastC < 1 Then
-        srcBook.Close SaveChanges:=False
-        MsgBox "ファイルにセルがありません。", vbExclamation
-        GoTo Done
-    End If
-    dst.Range("A1").Resize(lastR, lastC).Value = src.Range("A1").Resize(lastR, lastC).Value
-    srcBook.Close SaveChanges:=False
+    ' Keep CSV values as text so codes, long evidence and cells starting with "=" or "-" are not converted.
+    If isCsv Then dst.Cells.NumberFormat = "@"
+    dst.Range("A1").Resize(lastR, lastC).Value = data
     dst.Rows(1).Font.Bold = True
     ThisWorkbook.Worksheets(CoverName()).Range(statusCell).Value = (lastR - 1) & "件"
     MsgBox sheetName & "を取り込みました（" & (lastR - 1) & "件）。", vbInformation
@@ -197,6 +201,206 @@ Private Function SheetOrNew(ByVal sheetName As String) As Worksheet
     End If
     Set SheetOrNew = ws
 End Function
+
+Private Function ReadCsv(ByVal path As String) As Variant
+    Dim bytes() As Byte
+    bytes = ReadAllBytes(path)
+    ReadCsv = ParseCsv(DecodeText(bytes))
+End Function
+
+Private Function ReadAllBytes(ByVal path As String) As Byte()
+    Dim bytes() As Byte
+    On Error GoTo UseOpen
+    Dim stream As Object
+    Set stream = CreateObject("ADODB.Stream")
+    stream.Type = 1
+    stream.Open
+    stream.LoadFromFile path
+    If stream.Size > 0 Then bytes = stream.Read
+    stream.Close
+    ReadAllBytes = bytes
+    Exit Function
+UseOpen:
+    On Error GoTo 0
+    Dim f As Integer
+    f = FreeFile
+    Open path For Binary Access Read As #f
+    If LOF(f) > 0 Then
+        ReDim bytes(0 To LOF(f) - 1)
+        Get #f, , bytes
+    End If
+    Close #f
+    ReadAllBytes = bytes
+End Function
+
+Private Function DecodeText(ByRef bytes() As Byte) As String
+    Dim n As Long
+    n = 0
+    On Error Resume Next
+    n = UBound(bytes) + 1
+    On Error GoTo 0
+    If n = 0 Then
+        DecodeText = ""
+        Exit Function
+    End If
+    Dim start As Long
+    start = 0
+    If n >= 3 Then
+        If bytes(0) = &HEF And bytes(1) = &HBB And bytes(2) = &HBF Then start = 3
+    End If
+    Dim text As String
+    If Utf8Decode(bytes, start, n, text) Then
+        DecodeText = text
+    Else
+        DecodeText = StrConv(bytes, vbUnicode)
+    End If
+End Function
+
+Private Function Utf8Decode(ByRef bytes() As Byte, ByVal start As Long, ByVal n As Long, ByRef text As String) As Boolean
+    Dim buf As String
+    buf = String$(n, vbNullChar)
+    Dim pos As Long
+    pos = 0
+    Dim i As Long
+    i = start
+    Dim b As Long
+    Dim cp As Long
+    Dim extra As Long
+    Dim k As Long
+    Do While i < n
+        b = bytes(i)
+        If b < &H80 Then
+            cp = b
+            extra = 0
+        ElseIf (b And &HE0) = &HC0 Then
+            cp = b And &H1F
+            extra = 1
+        ElseIf (b And &HF0) = &HE0 Then
+            cp = b And &HF
+            extra = 2
+        ElseIf (b And &HF8) = &HF0 Then
+            cp = b And &H7
+            extra = 3
+        Else
+            Exit Function
+        End If
+        If i + extra >= n Then Exit Function
+        For k = 1 To extra
+            If (bytes(i + k) And &HC0) <> &H80 Then Exit Function
+            cp = cp * &H40 + (bytes(i + k) And &H3F)
+        Next k
+        i = i + extra + 1
+        If cp >= &H10000 Then
+            cp = cp - &H10000
+            pos = pos + 1
+            Mid$(buf, pos, 1) = ChrW(&HD800& + (cp \ &H400))
+            pos = pos + 1
+            Mid$(buf, pos, 1) = ChrW(&HDC00& + (cp And &H3FF))
+        Else
+            pos = pos + 1
+            Mid$(buf, pos, 1) = ChrW(cp)
+        End If
+    Loop
+    text = Left$(buf, pos)
+    Utf8Decode = True
+End Function
+
+Private Function ParseCsv(ByRef text As String) As Variant
+    Dim records As New Collection
+    Dim fields() As String
+    Dim fc As Long
+    Dim maxCols As Long
+    Dim n As Long
+    Dim i As Long
+    Dim k As Long
+    Dim j As Long
+    Dim fieldText As String
+    Dim c As String
+    n = Len(text)
+    i = 1
+    fc = 0
+    maxCols = 0
+    ReDim fields(1 To 16)
+    Do While i <= n
+        If Mid$(text, i, 1) = """" Then
+            j = i + 1
+            Do
+                k = InStr(j, text, """")
+                If k = 0 Then
+                    fieldText = Mid$(text, i + 1)
+                    i = n + 1
+                    Exit Do
+                End If
+                If Mid$(text, k + 1, 1) = """" Then
+                    j = k + 2
+                Else
+                    fieldText = Mid$(text, i + 1, k - i - 1)
+                    i = k + 1
+                    Exit Do
+                End If
+            Loop
+            fieldText = Replace$(fieldText, """""", """")
+        Else
+            fieldText = ""
+        End If
+        k = i
+        Do While k <= n
+            c = Mid$(text, k, 1)
+            If c = "," Or c = vbCr Or c = vbLf Then Exit Do
+            k = k + 1
+        Loop
+        fieldText = fieldText & Mid$(text, i, k - i)
+        i = k
+
+        fc = fc + 1
+        If fc > UBound(fields) Then ReDim Preserve fields(1 To fc * 2)
+        fields(fc) = fieldText
+
+        If i > n Then Exit Do
+        c = Mid$(text, i, 1)
+        If c = "," Then
+            i = i + 1
+            If i > n Then
+                fc = fc + 1
+                If fc > UBound(fields) Then ReDim Preserve fields(1 To fc * 2)
+                fields(fc) = ""
+            End If
+        Else
+            If c = vbCr And Mid$(text, i + 1, 1) = vbLf Then i = i + 2 Else i = i + 1
+            AddCsvRow records, fields, fc, maxCols
+            fc = 0
+        End If
+    Loop
+    If fc > 0 Then AddCsvRow records, fields, fc, maxCols
+
+    If records.Count = 0 Or maxCols = 0 Then
+        ParseCsv = Empty
+        Exit Function
+    End If
+    Dim data() As Variant
+    ReDim data(1 To records.Count, 1 To maxCols)
+    Dim r As Long
+    Dim record As Variant
+    For r = 1 To records.Count
+        record = records(r)
+        For k = 1 To UBound(record)
+            data(r, k) = record(k)
+        Next k
+    Next r
+    ParseCsv = data
+End Function
+
+Private Sub AddCsvRow(ByVal records As Collection, ByRef fields() As String, ByVal fc As Long, ByRef maxCols As Long)
+    If fc = 1 And Len(fields(1)) = 0 Then Exit Sub
+    Dim record() As String
+    ReDim record(1 To fc)
+    Dim k As Long
+    For k = 1 To fc
+        record(k) = fields(k)
+    Next k
+    records.Add record
+    If fc > maxCols Then maxCols = fc
+End Sub
 
 Private Function TrySheet(ByVal sheetName As String, ByRef ws As Worksheet) As Boolean
     On Error Resume Next
@@ -464,9 +668,9 @@ Private Sub FormatResult(ByVal ws As Worksheet, ByVal n As Long)
         ws.Rows("2:" & last).VerticalAlignment = xlCenter
     End If
     ws.Range("A1:M" & last).AutoFilter
-    ws.FreezePanes = False
+    ActiveWindow.FreezePanes = False
     ws.Range("A2").Select
-    ws.FreezePanes = True
+    ActiveWindow.FreezePanes = True
     ws.Range("A1").Select
 End Sub
 
