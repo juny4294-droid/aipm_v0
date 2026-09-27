@@ -60,7 +60,7 @@ Public Sub UpdateResultSheet()
     pDis = ColOfAny(patients, Array("退院日", "退院年月日"))
     pDept = ColOf(patients, "診療科")
     pWard = ColOf(patients, "病棟")
-    pDpc = ColOfAny(patients, Array("DPCコード14桁", "DCPコード14桁"))
+    pDpc = ColOfAny(patients, Array("DPCコード14桁", "DCPコード14桁", "DPCコード"))
     pScore = ColOf(patients, "点数")
     If pId = 0 Or pAdm = 0 Or pDis = 0 Or pDpc = 0 Or pScore = 0 Then
         MsgBox "患者一覧には「患者ID」「入院日」「退院日」「DPCコード14桁」「点数」が必要です。", vbExclamation
@@ -80,7 +80,7 @@ Public Sub UpdateResultSheet()
     End If
 
     Dim out() As Variant
-    ReDim out(1 To pLast, 1 To 13)
+    ReDim out(1 To pLast, 1 To 14)
     Dim n As Long
     n = 0
     Dim r As Long
@@ -108,10 +108,12 @@ Public Sub UpdateResultSheet()
         out(n, 11) = ScoreDiff(out(n, 10), out(n, 8))
         out(n, 12) = CodeLabel(out(n, 7), out(n, 9))
         out(n, 13) = ScoreLabel(out(n, 8), out(n, 10))
+        out(n, 14) = best
 NextPatient:
     Next r
 
     If wsR.AutoFilterMode Then wsR.AutoFilterMode = False
+    wsR.Hyperlinks.Delete
     wsR.Cells.Clear
     Dim headers As Variant
     headers = Array( _
@@ -122,11 +124,16 @@ NextPatient:
         wsR.Cells(1, i + 1).Value = headers(i)
     Next i
     If n > 0 Then
-        wsR.Range("A2").Resize(n, 13).Value = SliceRows(out, n, 13)
-        wsR.Range("A2").Resize(n, 13).Sort _
+        wsR.Range("A2").Resize(n, 14).Value = SliceRows(out, n, 14)
+        wsR.Range("A2").Resize(n, 14).Sort _
             Key1:=wsR.Range("B2"), Order1:=xlAscending, _
             Key2:=wsR.Range("A2"), Order2:=xlAscending, _
             Header:=xlNo
+        For r = 2 To n + 1
+            wsR.Hyperlinks.Add Anchor:=wsR.Cells(r, 1), Address:="", _
+                SubAddress:="'" & CodingName() & "'!A" & wsR.Cells(r, 14).Value
+        Next r
+        wsR.Range("N2").Resize(n, 1).ClearContents
     End If
     FormatResult wsR, n
     wsR.Activate
@@ -181,6 +188,14 @@ Private Sub ImportFile(ByVal sheetName As String, ByVal filterSpec As String, By
     If isCsv Then dst.Cells.NumberFormat = "@"
     dst.Range("A1").Resize(lastR, lastC).Value = data
     dst.Rows(1).Font.Bold = True
+    If sheetName = CodingName() And lastR >= 2 Then
+        With dst.Rows("2:" & lastR)
+            ' 67.5pt = 90px at 100% display scaling
+            .RowHeight = 67.5
+            .VerticalAlignment = xlTop
+        End With
+    End If
+    If sheetName = CodingName() Then FreezeHeader dst
     ThisWorkbook.Worksheets(CoverName()).Range(statusCell).Value = (lastR - 1) & "件"
     MsgBox sheetName & "を取り込みました（" & (lastR - 1) & "件）。", vbInformation
     GoTo Done
@@ -201,6 +216,21 @@ Private Function SheetOrNew(ByVal sheetName As String) As Worksheet
     End If
     Set SheetOrNew = ws
 End Function
+
+Private Sub FreezeHeader(ByVal ws As Worksheet)
+    Dim prev As Object
+    Set prev = ActiveSheet
+    ws.Activate
+    With ActiveWindow
+        .FreezePanes = False
+        .ScrollRow = 1
+        .ScrollColumn = 1
+        .SplitColumn = 0
+        .SplitRow = 1
+        .FreezePanes = True
+    End With
+    prev.Activate
+End Sub
 
 Private Function ReadCsv(ByVal path As String) As Variant
     Dim bytes() As Byte
