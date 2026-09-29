@@ -68,19 +68,22 @@ Public Sub UpdateResultSheet()
     End If
 
     Dim cId As Long, cAdm As Long, cDpc As Long, cScore As Long, cConf As Long, cDecision As Long
+    Dim cIcd As Long, cIcdName As Long
     cId = ColOf(coding, "patient_id")
     cAdm = ColOf(coding, "admission_date")
     cDpc = ColOf(coding, "dpc14")
     cScore = ColOf(coding, "final_total_score")
     cConf = ColOf(coding, "step1_confidence")
     cDecision = ColOf(coding, "final_decision")
+    cIcd = ColOf(coding, "step1_icd10")
+    cIcdName = ColOf(coding, "step1_icd10_name")
     If cId = 0 Or cAdm = 0 Or cDpc = 0 Or cScore = 0 Or cConf = 0 Then
         MsgBox "コーディング結果に patient_id, admission_date, dpc14, final_total_score, step1_confidence が必要です。", vbExclamation
         GoTo Done
     End If
 
     Dim out() As Variant
-    ReDim out(1 To pLast, 1 To 14)
+    ReDim out(1 To pLast, 1 To 16)
     Dim n As Long
     n = 0
     Dim r As Long
@@ -103,12 +106,14 @@ Public Sub UpdateResultSheet()
         If pWard > 0 Then out(n, 6) = patients(r, pWard)
         out(n, 7) = patients(r, pDpc)
         out(n, 8) = ToNumber(patients(r, pScore))
-        out(n, 9) = coding(best, cDpc)
-        out(n, 10) = ToNumber(coding(best, cScore))
-        out(n, 11) = ScoreDiff(out(n, 10), out(n, 8))
-        out(n, 12) = CodeLabel(out(n, 7), out(n, 9))
-        out(n, 13) = ScoreLabel(out(n, 8), out(n, 10))
-        out(n, 14) = best
+        If cIcd > 0 Then out(n, 9) = coding(best, cIcd)
+        If cIcdName > 0 Then out(n, 10) = coding(best, cIcdName)
+        out(n, 11) = coding(best, cDpc)
+        out(n, 12) = ToNumber(coding(best, cScore))
+        out(n, 13) = ScoreDiff(out(n, 12), out(n, 8))
+        out(n, 14) = CodeLabel(out(n, 7), out(n, 11))
+        out(n, 15) = EvalLabel(out(n, 14), out(n, 8), out(n, 12))
+        out(n, 16) = best
 NextPatient:
     Next r
 
@@ -118,22 +123,23 @@ NextPatient:
     Dim headers As Variant
     headers = Array( _
         "患者ID", "入院日", "退院日", "在院日数", "診療科", "病棟", _
-        "現状のDPC", "現状の点数", "AIコーディングのDPC", "AIコーディングの点数", _
-        "点数差", "コード一致", "点数一致")
+        "現状のDPC", "現状の点数", "AIコーディングのICD10コード", "AIコーディングのICD10名称", _
+        "AIコーディングのDPC", "AIコーディングの点数", _
+        "点数差", "コード一致", "評価")
     For i = 0 To UBound(headers)
         wsR.Cells(1, i + 1).Value = headers(i)
     Next i
     If n > 0 Then
-        wsR.Range("A2").Resize(n, 14).Value = SliceRows(out, n, 14)
-        wsR.Range("A2").Resize(n, 14).Sort _
+        wsR.Range("A2").Resize(n, 16).Value = SliceRows(out, n, 16)
+        wsR.Range("A2").Resize(n, 16).Sort _
             Key1:=wsR.Range("B2"), Order1:=xlAscending, _
             Key2:=wsR.Range("A2"), Order2:=xlAscending, _
             Header:=xlNo
         For r = 2 To n + 1
             wsR.Hyperlinks.Add Anchor:=wsR.Cells(r, 1), Address:="", _
-                SubAddress:="'" & CodingName() & "'!A" & wsR.Cells(r, 14).Value
+                SubAddress:="'" & CodingName() & "'!A" & wsR.Cells(r, 16).Value
         Next r
-        wsR.Range("N2").Resize(n, 1).ClearContents
+        wsR.Range("P2").Resize(n, 1).ClearContents
     End If
     FormatResult wsR, n
     wsR.Activate
@@ -567,28 +573,37 @@ Private Function CodeLabel(ByVal listCode As Variant, ByVal aiCode As Variant) A
     Dim b As String
     a = NormCode(listCode)
     b = NormCode(aiCode)
-    If Len(a) > 0 And a = b Then
-        CodeLabel = "コード一致"
+    If Len(a) = 0 Or Len(b) = 0 Then
+        CodeLabel = "6桁不一致"
+    ElseIf a = b Then
+        CodeLabel = "完全一致"
+    ElseIf Left$(a, 6) = Left$(b, 6) Then
+        CodeLabel = "7桁以降不一致"
     Else
-        CodeLabel = "コード不一致"
+        CodeLabel = "6桁不一致"
     End If
 End Function
 
-Private Function ScoreLabel(ByVal listScore As Variant, ByVal aiScore As Variant) As String
-    If Not IsNumeric(listScore) Or Not IsNumeric(aiScore) Then
-        ScoreLabel = ""
+Private Function EvalLabel(ByVal codeResult As String, ByVal listScore As Variant, ByVal aiScore As Variant) As String
+    If codeResult = "完全一致" Then
+        EvalLabel = "一致"
         Exit Function
     End If
-    If Len(Trim$(AsText(listScore))) = 0 Or Len(Trim$(AsText(aiScore))) = 0 Then
-        ScoreLabel = ""
+    If codeResult = "7桁以降不一致" Then
+        EvalLabel = "要確認"
         Exit Function
     End If
-    If CDbl(listScore) > CDbl(aiScore) Then
-        ScoreLabel = "アップコーディング"
-    ElseIf CDbl(listScore) < CDbl(aiScore) Then
-        ScoreLabel = "増収候補"
+    If Not IsNumeric(listScore) Or Not IsNumeric(aiScore) _
+        Or Len(Trim$(AsText(listScore))) = 0 Or Len(Trim$(AsText(aiScore))) = 0 Then
+        EvalLabel = "要確認"
+        Exit Function
+    End If
+    If CDbl(aiScore) > CDbl(listScore) Then
+        EvalLabel = "増収候補"
+    ElseIf CDbl(aiScore) < CDbl(listScore) Then
+        EvalLabel = "アップコーディング候補"
     Else
-        ScoreLabel = "点数一致"
+        EvalLabel = "一致"
     End If
 End Function
 
@@ -671,12 +686,13 @@ Private Sub FormatResult(ByVal ws As Worksheet, ByVal n As Long)
         .Font.Bold = True
         .Font.Color = vbWhite
         .Font.Name = "游ゴシック"
-        .Interior.Color = RGB(31, 78, 121)
         .HorizontalAlignment = xlCenter
         .VerticalAlignment = xlCenter
         .RowHeight = 36
         .WrapText = True
     End With
+    ws.Range("A1:H1").Interior.Color = RGB(31, 78, 121)
+    ws.Range("I1:O1").Interior.Color = RGB(56, 87, 35)
     ws.Columns("A").ColumnWidth = 12
     ws.Columns("B:C").ColumnWidth = 14
     ws.Columns("D").ColumnWidth = 12
@@ -684,20 +700,22 @@ Private Sub FormatResult(ByVal ws As Worksheet, ByVal n As Long)
     ws.Columns("F").ColumnWidth = 12
     ws.Columns("G").ColumnWidth = 20
     ws.Columns("H").ColumnWidth = 14
-    ws.Columns("I").ColumnWidth = 22
-    ws.Columns("J").ColumnWidth = 22
-    ws.Columns("K").ColumnWidth = 12
-    ws.Columns("L").ColumnWidth = 14
-    ws.Columns("M").ColumnWidth = 18
+    ws.Columns("I").ColumnWidth = 16
+    ws.Columns("J").ColumnWidth = 36
+    ws.Columns("K").ColumnWidth = 22
+    ws.Columns("L").ColumnWidth = 22
+    ws.Columns("M").ColumnWidth = 12
+    ws.Columns("N").ColumnWidth = 16
+    ws.Columns("O").ColumnWidth = 24
     If n > 0 Then
-        ws.Range("A2:M" & last).Font.Name = "游ゴシック"
+        ws.Range("A2:O" & last).Font.Name = "游ゴシック"
         ws.Range("B2:C" & last).NumberFormat = "yyyy-mm-dd"
         ws.Range("D2:D" & last).NumberFormat = "0"
         ws.Range("H2:H" & last).NumberFormat = "#,##0"
-        ws.Range("J2:K" & last).NumberFormat = "#,##0"
+        ws.Range("L2:M" & last).NumberFormat = "#,##0"
         ws.Rows("2:" & last).VerticalAlignment = xlCenter
     End If
-    ws.Range("A1:M" & last).AutoFilter
+    ws.Range("A1:O" & last).AutoFilter
     ActiveWindow.FreezePanes = False
     ws.Range("A2").Select
     ActiveWindow.FreezePanes = True
