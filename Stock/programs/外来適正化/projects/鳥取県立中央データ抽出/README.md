@@ -23,4 +23,7 @@ TBD（リスト出し・最終確認後）
 - Flow（本日）: `Flow/202608/2026-08-24/外来適正化_鳥取県立中央データ抽出/`
 
 ## テナント
-tenant 274。親集合は `outpatient_ef` を直近1年（今回 2025-08-01〜2026-07-31）で期間絞り（`patient_summary_by_department` は使わない）
+tenant 274。親集合は `outpatient_ef` を直近1年で期間絞り（`patient_summary_by_department` は使わない）
+
+## 月次手順
+脳神経外科: `documents/4_executing/脳神経外科_月次抽出手順.md`
