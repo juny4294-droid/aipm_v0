@@ -37,6 +37,17 @@ Public Sub UpdateResultSheet()
     End If
     Set wsR = ThisWorkbook.Worksheets(ResultName())
 
+    Dim thresholdCell As Range
+    Set thresholdCell = ThisWorkbook.Worksheets(CoverName()).Range(ThresholdAddress())
+    EnsureThresholdList thresholdCell
+    Dim threshold As Double
+    If Not TryThreshold(thresholdCell.Value, threshold) Then
+        MsgBox "表紙の「自信度の閾値」で 0.5～1 の値を選んでください。", vbExclamation
+        GoTo Done
+    End If
+    Dim thrText As String
+    thrText = Format$(threshold, "0.0")
+
     Dim pLast As Long, pCols As Long
     Dim cLast As Long, cCols As Long
     pLast = LastRow(wsP)
@@ -83,7 +94,7 @@ Public Sub UpdateResultSheet()
     End If
 
     Dim out() As Variant
-    ReDim out(1 To pLast, 1 To 16)
+    ReDim out(1 To pLast, 1 To 20)
     Dim n As Long
     n = 0
     Dim r As Long
@@ -113,33 +124,43 @@ Public Sub UpdateResultSheet()
         out(n, 13) = ScoreDiff(out(n, 12), out(n, 8))
         out(n, 14) = CodeLabel(out(n, 7), out(n, 11))
         out(n, 15) = EvalLabel(out(n, 14), out(n, 8), out(n, 12))
-        out(n, 16) = best
+        Dim topRow As Long
+        topRow = TopScoreRow(coding, cId, cAdm, cDpc, cScore, cConf, idKey, dateKey, threshold)
+        If topRow > 0 Then
+            out(n, 16) = coding(topRow, cDpc)
+            out(n, 17) = ToNumber(coding(topRow, cScore))
+            out(n, 18) = ScoreDiff(out(n, 17), out(n, 8))
+            out(n, 19) = IncreaseLabel(out(n, 17), out(n, 8))
+        End If
+        out(n, 20) = best
 NextPatient:
     Next r
 
     If wsR.AutoFilterMode Then wsR.AutoFilterMode = False
     wsR.Hyperlinks.Delete
     wsR.Cells.Clear
+    wsR.Range("A1").Value = "AIコーディング前"
+    wsR.Range("I1").Value = "コーディング結果（最高自信度）"
+    wsR.Range("P1").Value = "コーディング結果（閾値" & thrText & "以上）"
     Dim headers As Variant
     headers = Array( _
-        "患者ID", "入院日", "退院日", "在院日数", "診療科", "病棟", _
-        "現状のDPC", "現状の点数", "AIコーディングのICD10コード", "AIコーディングのICD10名称", _
-        "AIコーディングのDPC", "AIコーディングの点数", _
-        "点数差", "コード一致", "評価")
+        "患者ID", "入院日", "退院日", "在院日数", "診療科", "病棟", "DPC", "点数", _
+        "ICD10コード", "ICD10名称", "DPC", "点数", "点数差", "コード一致", "評価", _
+        "最高点のDPC", "点数", "点数差", "増収候補")
     For i = 0 To UBound(headers)
-        wsR.Cells(1, i + 1).Value = headers(i)
+        wsR.Cells(2, i + 1).Value = headers(i)
     Next i
     If n > 0 Then
-        wsR.Range("A2").Resize(n, 16).Value = SliceRows(out, n, 16)
-        wsR.Range("A2").Resize(n, 16).Sort _
-            Key1:=wsR.Range("B2"), Order1:=xlAscending, _
-            Key2:=wsR.Range("A2"), Order2:=xlAscending, _
+        wsR.Range("A3").Resize(n, 20).Value = SliceRows(out, n, 20)
+        wsR.Range("A3").Resize(n, 20).Sort _
+            Key1:=wsR.Range("B3"), Order1:=xlAscending, _
+            Key2:=wsR.Range("A3"), Order2:=xlAscending, _
             Header:=xlNo
-        For r = 2 To n + 1
+        For r = 3 To n + 2
             wsR.Hyperlinks.Add Anchor:=wsR.Cells(r, 1), Address:="", _
-                SubAddress:="'" & CodingName() & "'!A" & wsR.Cells(r, 16).Value
+                SubAddress:="'" & CodingName() & "'!A" & wsR.Cells(r, 20).Value
         Next r
-        wsR.Range("P2").Resize(n, 1).ClearContents
+        wsR.Range("T3").Resize(n, 1).ClearContents
     End If
     FormatResult wsR, n
     wsR.Activate
@@ -536,6 +557,66 @@ Private Function BetterCandidate( _
     BetterCandidate = ConfidenceOf(data(challenger, scoreCol)) > ConfidenceOf(data(incumbent, scoreCol))
 End Function
 
+Private Function TopScoreRow( _
+    ByVal data As Variant, ByVal idCol As Long, ByVal dateCol As Long, _
+    ByVal dpcCol As Long, ByVal scoreCol As Long, ByVal confCol As Long, _
+    ByVal idKey As String, ByVal dateKey As String, ByVal threshold As Double) As Long
+    Dim r As Long
+    Dim best As Long
+    Dim bestScore As Double
+    Dim bestConf As Double
+    best = 0
+    For r = 2 To UBound(data, 1)
+        If NormId(data(r, idCol)) <> idKey Then GoTo NextRow
+        If NormDate(data(r, dateCol)) <> dateKey Then GoTo NextRow
+        If Len(NormCode(data(r, dpcCol))) = 0 Then GoTo NextRow
+        Dim conf As Double
+        conf = ConfidenceOf(data(r, confCol))
+        If conf < threshold - 0.0000001 Then GoTo NextRow
+        Dim score As Double
+        score = ConfidenceOf(data(r, scoreCol))
+        If score < 0 Then GoTo NextRow
+        If best = 0 Or score > bestScore Or (score = bestScore And conf > bestConf + 0.0000001) Then
+            best = r
+            bestScore = score
+            bestConf = conf
+        End If
+NextRow:
+    Next r
+    TopScoreRow = best
+End Function
+
+Private Function IncreaseLabel(ByVal aiScore As Variant, ByVal listScore As Variant) As String
+    If Not IsNumeric(aiScore) Or Not IsNumeric(listScore) _
+        Or Len(Trim$(AsText(aiScore))) = 0 Or Len(Trim$(AsText(listScore))) = 0 Then
+        IncreaseLabel = ""
+    ElseIf CDbl(aiScore) > CDbl(listScore) Then
+        IncreaseLabel = "増収候補"
+    Else
+        IncreaseLabel = "対象外"
+    End If
+End Function
+
+Private Function TryThreshold(ByVal v As Variant, ByRef threshold As Double) As Boolean
+    TryThreshold = False
+    If Len(Trim$(AsText(v))) = 0 Or Not IsNumeric(v) Then Exit Function
+    threshold = CDbl(v)
+    TryThreshold = (threshold >= 0.5 - 0.0000001 And threshold <= 1 + 0.0000001)
+End Function
+
+Private Sub EnsureThresholdList(ByVal cell As Range)
+    Dim kind As Long
+    kind = -1
+    On Error Resume Next
+    kind = cell.Validation.Type
+    On Error GoTo 0
+    If kind = xlValidateList Then Exit Sub
+    cell.Validation.Delete
+    cell.Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
+        Formula1:="0.5,0.6,0.7,0.8,0.9,1"
+    cell.Validation.InCellDropdown = True
+End Sub
+
 Private Function ConfidenceOf(ByVal v As Variant) As Double
     If IsNumeric(v) And Len(Trim$(AsText(v))) > 0 Then
         ConfidenceOf = CDbl(v)
@@ -681,49 +762,77 @@ End Function
 Private Sub FormatResult(ByVal ws As Worksheet, ByVal n As Long)
     ws.Activate
     Dim last As Long
-    last = n + 1
-    With ws.Rows(1)
+    last = n + 2
+    With ws.Range("A1:S2")
         .Font.Bold = True
         .Font.Color = vbWhite
         .Font.Name = "游ゴシック"
-        .HorizontalAlignment = xlCenter
         .VerticalAlignment = xlCenter
-        .RowHeight = 36
         .WrapText = True
+        .Borders.LineStyle = xlContinuous
+        .Borders.Color = vbWhite
     End With
-    ws.Range("A1:H1").Interior.Color = RGB(31, 78, 121)
-    ws.Range("I1:O1").Interior.Color = RGB(56, 87, 35)
+    ws.Range("A1:H1").HorizontalAlignment = xlCenterAcrossSelection
+    ws.Range("I1:O1").HorizontalAlignment = xlCenterAcrossSelection
+    ws.Range("P1:S1").HorizontalAlignment = xlCenterAcrossSelection
+    ws.Range("A1:S1").Borders(xlInsideVertical).LineStyle = xlNone
+    Dim edge As Variant
+    For Each edge In Array("H1", "O1")
+        ws.Range(edge).Borders(xlEdgeRight).LineStyle = xlContinuous
+        ws.Range(edge).Borders(xlEdgeRight).Color = vbWhite
+    Next edge
+    ws.Range("A2:S2").HorizontalAlignment = xlCenter
+    ws.Rows(1).RowHeight = 24
+    ws.Rows(2).RowHeight = 30
+    ws.Range("A1:H2").Interior.Color = RGB(31, 78, 121)
+    ws.Range("I1:S2").Interior.Color = RGB(56, 87, 35)
     ws.Columns("A").ColumnWidth = 12
     ws.Columns("B:C").ColumnWidth = 14
-    ws.Columns("D").ColumnWidth = 12
+    ws.Columns("D").ColumnWidth = 10
     ws.Columns("E").ColumnWidth = 16
     ws.Columns("F").ColumnWidth = 12
-    ws.Columns("G").ColumnWidth = 20
-    ws.Columns("H").ColumnWidth = 14
-    ws.Columns("I").ColumnWidth = 16
+    ws.Columns("G").ColumnWidth = 18
+    ws.Columns("H").ColumnWidth = 12
+    ws.Columns("I").ColumnWidth = 14
     ws.Columns("J").ColumnWidth = 36
-    ws.Columns("K").ColumnWidth = 22
-    ws.Columns("L").ColumnWidth = 22
+    ws.Columns("K").ColumnWidth = 18
+    ws.Columns("L").ColumnWidth = 12
     ws.Columns("M").ColumnWidth = 12
     ws.Columns("N").ColumnWidth = 16
     ws.Columns("O").ColumnWidth = 24
+    ws.Columns("P").ColumnWidth = 18
+    ws.Columns("Q").ColumnWidth = 12
+    ws.Columns("R").ColumnWidth = 12
+    ws.Columns("S").ColumnWidth = 12
     If n > 0 Then
-        ws.Range("A2:O" & last).Font.Name = "游ゴシック"
-        ws.Range("B2:C" & last).NumberFormat = "yyyy-mm-dd"
-        ws.Range("D2:D" & last).NumberFormat = "0"
-        ws.Range("H2:H" & last).NumberFormat = "#,##0"
-        ws.Range("L2:M" & last).NumberFormat = "#,##0"
-        ws.Rows("2:" & last).VerticalAlignment = xlCenter
+        ws.Range("A3:S" & last).Font.Name = "游ゴシック"
+        ws.Range("B3:C" & last).NumberFormat = "yyyy-mm-dd"
+        ws.Range("D3:D" & last).NumberFormat = "0"
+        ws.Range("H3:H" & last).NumberFormat = "#,##0"
+        ws.Range("L3:M" & last).NumberFormat = "#,##0"
+        ws.Range("Q3:R" & last).NumberFormat = "#,##0"
+        ws.Rows("3:" & last).VerticalAlignment = xlCenter
     End If
-    ws.Range("A1:O" & last).AutoFilter
-    ActiveWindow.FreezePanes = False
-    ws.Range("A2").Select
-    ActiveWindow.FreezePanes = True
-    ws.Range("A1").Select
+    ws.Range("A2:S" & last).AutoFilter
+    With ActiveWindow
+        .FreezePanes = False
+        .ScrollRow = 1
+        .ScrollColumn = 1
+        .SplitColumn = 0
+        .SplitRow = 2
+        .FreezePanes = True
+        .ScrollRow = 3
+        .ScrollColumn = 1
+    End With
+    ws.Range("A3").Select
 End Sub
 
 Private Function CoverName() As String
     CoverName = "表紙"
+End Function
+
+Private Function ThresholdAddress() As String
+    ThresholdAddress = "B15"
 End Function
 
 Private Function ResultName() As String
@@ -779,14 +888,18 @@ def build_shell() -> None:
         (5, "2. 「コーディング結果を取り込む」で、コーディング結果のCSVを指定する"),
         (6, "3. 「結果シートを更新」で、取り込んだ2シートから結果シートを書き換える"),
         (8, "結果は、患者IDと入院日が一致した行です。AI側は自信度が最も高いDPC14桁を使い、一覧のDPCと点数と比べます。"),
+        (9, "あわせて、自信度が下の閾値以上の候補のうち点数が最も高いDPCとも比べ、増収候補かどうかを出します。"),
         (11, "取込状況"),
         (12, "患者一覧"),
         (13, "コーディング結果"),
+        (15, "自信度の閾値（0.5〜1。右のセルで選ぶ）"),
     ]
     for row, text in lines:
         cover_sheet.set_value(f"A{row}", text)
     cover_sheet.set_value("B12", "未取込")
     cover_sheet.set_value("B13", "未取込")
+    # The dropdown on B15 is added by EnsureThresholdList the first time 結果シートを更新 runs.
+    cover_sheet.set_value("B15", 0.5)
     result_sheet.set_value("A1", "表紙の「結果シートを更新」を実行すると、ここに書き込まれます。")
 
     cover_sheet.sheet.vba_get("Columns", ["A"]).vba_set("ColumnWidth", 96)
