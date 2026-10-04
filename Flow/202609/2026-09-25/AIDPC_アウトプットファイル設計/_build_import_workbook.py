@@ -13,8 +13,14 @@ OUT = Path(
     "/Users/junyamada/ws/aipm_v0/Flow/202609/2026-09-25/"
     "AIDPC_アウトプットファイル設計/20260925_コーディング結果_取り込み.xlsm"
 )
+MASTER = OUT.parent / "input" / "診断群分類電子点数表.xlsx"
 
 VBA = r"""Option Explicit
+
+Public Sub Auto_Open()
+    ThisWorkbook.Worksheets(CoverName()).Activate
+    ThisWorkbook.Worksheets(CoverName()).Range("A1").Select
+End Sub
 
 Public Sub ImportPatientList()
     ImportFile PatientsName(), "Excelファイル,*.xlsx;*.xlsm;*.xls", "B12"
@@ -36,7 +42,6 @@ Public Sub UpdateResultSheet()
         GoTo Done
     End If
     Set wsR = ThisWorkbook.Worksheets(ResultName())
-
     Dim thresholdCell As Range
     Set thresholdCell = ThisWorkbook.Worksheets(CoverName()).Range(ThresholdAddress())
     EnsureThresholdList thresholdCell
@@ -93,6 +98,8 @@ Public Sub UpdateResultSheet()
         GoTo Done
     End If
 
+    Dim usedRows() As Boolean
+    ReDim usedRows(1 To cLast)
     Dim out() As Variant
     ReDim out(1 To pLast, 1 To 20)
     Dim n As Long
@@ -124,6 +131,7 @@ Public Sub UpdateResultSheet()
         out(n, 13) = ScoreDiff(out(n, 12), out(n, 8))
         out(n, 14) = CodeLabel(out(n, 7), out(n, 11))
         out(n, 15) = EvalLabel(out(n, 14), out(n, 8), out(n, 12))
+        usedRows(best) = True
         Dim topRow As Long
         topRow = TopScoreRow(coding, cId, cAdm, cDpc, cScore, cConf, idKey, dateKey, threshold)
         If topRow > 0 Then
@@ -131,6 +139,7 @@ Public Sub UpdateResultSheet()
             out(n, 17) = ToNumber(coding(topRow, cScore))
             out(n, 18) = ScoreDiff(out(n, 17), out(n, 8))
             out(n, 19) = IncreaseLabel(out(n, 17), out(n, 8))
+            usedRows(topRow) = True
         End If
         out(n, 20) = best
 NextPatient:
@@ -163,6 +172,7 @@ NextPatient:
         wsR.Range("T3").Resize(n, 1).ClearContents
     End If
     FormatResult wsR, n
+    HideUnusedRows wsC, usedRows, cLast
     wsR.Activate
     MsgBox "結果シートを更新しました（" & n & "件）。", vbInformation
     GoTo Done
@@ -211,6 +221,7 @@ Private Sub ImportFile(ByVal sheetName As String, ByVal filterSpec As String, By
     Set dst = SheetOrNew(sheetName)
     If dst.AutoFilterMode Then dst.AutoFilterMode = False
     dst.Cells.Clear
+    dst.Rows.Hidden = False
     ' Keep CSV values as text so codes, long evidence and cells starting with "=" or "-" are not converted.
     If isCsv Then dst.Cells.NumberFormat = "@"
     dst.Range("A1").Resize(lastR, lastC).Value = data
@@ -223,13 +234,163 @@ Private Sub ImportFile(ByVal sheetName As String, ByVal filterSpec As String, By
         End With
     End If
     If sheetName = CodingName() Then FreezeHeader dst
+    Dim scoreNote As String
+    If sheetName = PatientsName() And lastR >= 2 Then scoreNote = FillListScores(dst, lastR)
     ThisWorkbook.Worksheets(CoverName()).Range(statusCell).Value = (lastR - 1) & "件"
-    MsgBox sheetName & "を取り込みました（" & (lastR - 1) & "件）。", vbInformation
+    MsgBox sheetName & "を取り込みました（" & (lastR - 1) & "件）。" & scoreNote, vbInformation
     GoTo Done
 Fail:
     MsgBox "取り込みに失敗しました: " & Err.Description, vbExclamation
 Done:
     Application.ScreenUpdating = True
+End Sub
+
+Private Function FillListScores(ByVal ws As Worksheet, ByVal lastR As Long) As String
+    Dim master As Worksheet
+    If Not TrySheet(MasterName(), master) Then
+        FillListScores = vbLf & "「" & MasterName() & "」シートがないため、点数は計算していません。"
+        Exit Function
+    End If
+    Dim lastC As Long
+    lastC = LastCol(ws)
+    Dim data As Variant
+    data = ws.Range("A1").Resize(lastR, lastC).Value
+    Dim cAdm As Long, cDis As Long, cDpc As Long, cScore As Long
+    cAdm = ColOfAny(data, Array("入院日", "入院年月日"))
+    cDis = ColOfAny(data, Array("退院日", "退院年月日"))
+    cDpc = ColOfAny(data, Array("DPCコード14桁", "DCPコード14桁", "DPCコード"))
+    cScore = ColOf(data, "点数")
+    If cAdm = 0 Or cDpc = 0 Then
+        FillListScores = vbLf & "入院日またはDPCコードの列がないため、点数は計算していません。"
+        Exit Function
+    End If
+    If cScore = 0 Then
+        cScore = lastC + 1
+        ws.Cells(1, cScore).Value = "点数"
+    End If
+
+    Dim mLast As Long, mCols As Long
+    mLast = LastRow(master)
+    mCols = LastCol(master)
+    Dim m As Variant
+    m = master.Range("A1").Resize(mLast, mCols).Value
+    Dim mCode As Long, mDays As Long, mPts As Long
+    mCode = ColOfPrefix(m, "診断群分類番号")
+    mDays = ColOfPrefix(m, "入院日")
+    mPts = ColOfPrefix(m, "点数")
+    If mCode = 0 Or mDays = 0 Or mPts = 0 Or mDays + 2 > mCols Or mPts + 2 > mCols Then
+        FillListScores = vbLf & "「" & MasterName() & "」シートの見出しが想定と違うため、点数は計算していません。"
+        Exit Function
+    End If
+    Dim index As New Collection
+    Dim r As Long
+    For r = 2 To mLast
+        Dim key As String
+        key = NormCode(m(r, mCode))
+        If Len(key) > 0 Then
+            On Error Resume Next
+            index.Add r, key
+            On Error GoTo 0
+        End If
+    Next r
+
+    Dim scores As Variant
+    scores = ws.Cells(1, cScore).Resize(lastR, 1).Value
+    For r = 2 To lastR
+        If Len(Trim$(AsText(scores(r, 1)))) = 0 Then
+            Dim mr As Long
+            mr = 0
+            key = NormCode(data(r, cDpc))
+            If Len(key) > 0 Then
+                On Error Resume Next
+                mr = index(key)
+                On Error GoTo 0
+            End If
+            Dim dis As Variant
+            dis = Empty
+            If cDis > 0 Then dis = data(r, cDis)
+            Dim score As Variant
+            score = Empty
+            If mr > 0 Then score = MasterScore(m, mr, mDays, mPts, data(r, cAdm), dis)
+            If Not IsEmpty(score) Then scores(r, 1) = score
+        End If
+    Next r
+    ws.Cells(1, cScore).Resize(lastR, 1).Value = scores
+End Function
+
+Private Function MasterScore( _
+    ByRef m As Variant, ByVal mr As Long, ByVal daysCol As Long, ByVal ptsCol As Long, _
+    ByVal adm As Variant, ByVal dis As Variant) As Variant
+    MasterScore = Empty
+    Dim i As Long
+    For i = 0 To 2
+        If ConfidenceOf(m(mr, daysCol + i)) < 0 Then Exit Function
+    Next i
+    Dim limit1 As Long, limit2 As Long, limit3 As Long
+    limit1 = CLng(m(mr, daysCol))
+    limit2 = CLng(m(mr, daysCol + 1))
+    limit3 = CLng(m(mr, daysCol + 2))
+
+    Dim admDate As Variant
+    admDate = ToDate(adm)
+    If VarType(admDate) <> vbDate Then Exit Function
+    Dim days As Long
+    If Len(Trim$(AsText(dis))) = 0 Then
+        days = limit2
+    Else
+        Dim disDate As Variant
+        disDate = ToDate(dis)
+        If VarType(disDate) <> vbDate Then Exit Function
+        days = Int(CDbl(disDate)) - Int(CDbl(admDate)) + 1
+    End If
+    If days < 1 Then Exit Function
+    If days > limit3 Then days = limit3
+
+    Dim spans(0 To 2) As Long
+    spans(0) = MinLong(days, limit1)
+    spans(1) = MinLong(days, limit2) - limit1
+    spans(2) = days - limit2
+    Dim total As Double
+    For i = 0 To 2
+        If spans(i) > 0 Then
+            If ConfidenceOf(m(mr, ptsCol + i)) < 0 Then Exit Function
+            total = total + spans(i) * CDbl(m(mr, ptsCol + i))
+        End If
+    Next i
+    MasterScore = CLng(total)
+End Function
+
+Private Function MinLong(ByVal a As Long, ByVal b As Long) As Long
+    If a < b Then MinLong = a Else MinLong = b
+End Function
+
+Private Function ColOfPrefix(ByVal data As Variant, ByVal prefix As String) As Long
+    Dim c As Long
+    For c = 1 To UBound(data, 2)
+        If Left$(Trim$(AsText(data(1, c))), Len(prefix)) = prefix Then
+            ColOfPrefix = c
+            Exit Function
+        End If
+    Next c
+    ColOfPrefix = 0
+End Function
+
+Private Sub HideUnusedRows(ByVal ws As Worksheet, ByRef usedRows() As Boolean, ByVal lastR As Long)
+    ws.Rows.Hidden = False
+    Dim r As Long
+    Dim blockStart As Long
+    blockStart = 0
+    For r = 2 To lastR + 1
+        Dim hideRow As Boolean
+        hideRow = False
+        If r <= lastR Then hideRow = Not usedRows(r)
+        If hideRow Then
+            If blockStart = 0 Then blockStart = r
+        ElseIf blockStart > 0 Then
+            ws.Rows(blockStart & ":" & (r - 1)).Hidden = True
+            blockStart = 0
+        End If
+    Next r
 End Sub
 
 Private Function SheetOrNew(ByVal sheetName As String) As Worksheet
@@ -467,8 +628,13 @@ Private Function TrySheet(ByVal sheetName As String, ByRef ws As Worksheet) As B
 End Function
 
 Private Function LastRow(ByVal ws As Worksheet) As Long
-    LastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
-    If LastRow = 1 And Len(Trim$(AsText(ws.Cells(1, 1).Value))) = 0 Then LastRow = 0
+    Dim found As Range
+    Set found = ws.Cells.Find(What:="*", LookIn:=xlFormulas, SearchOrder:=xlByRows, SearchDirection:=xlPrevious)
+    If found Is Nothing Then
+        LastRow = 0
+    Else
+        LastRow = found.Row
+    End If
 End Function
 
 Private Function LastCol(ByVal ws As Worksheet) As Long
@@ -846,6 +1012,10 @@ End Function
 Private Function CodingName() As String
     CodingName = "コーディング結果"
 End Function
+
+Private Function MasterName() As String
+    MasterName = "点数表"
+End Function
 """
 
 
@@ -860,6 +1030,21 @@ def patch_code_page(raw: bytes, new_cp: int = 932) -> bytes:
     buf = bytearray(raw)
     struct.pack_into("<H", buf, index + 6, new_cp)
     return bytes(buf)
+
+
+def add_master_sheet(app, book, after_view) -> None:
+    from openpyxl import load_workbook
+    from openpyxl.utils import get_column_letter
+
+    added = book.vba_get("Sheets").Add()
+    added.vba_set("Name", "点数表")
+    view = next(v for v in app.sheets() if v.name == "点数表")
+    view.sheet.Move(After=after_view.sheet)
+    source = load_workbook(MASTER, read_only=True, data_only=True).worksheets[0]
+    for r, row in enumerate(source.iter_rows(values_only=True), start=1):
+        for c, value in enumerate(row, start=1):
+            if value is not None:
+                view.set_value(f"{get_column_letter(c)}{r}", value)
 
 
 def build_shell() -> None:
@@ -880,11 +1065,12 @@ def build_shell() -> None:
             result_sheet = view
     assert cover_sheet is not None and result_sheet is not None
     result_sheet.sheet.Move(After=cover_sheet.sheet)
+    add_master_sheet(app, book, result_sheet)
 
     lines = [
         (1, "コーディング結果をユーザー向けに整える"),
         (3, "手順"),
-        (4, "1. 「患者一覧を取り込む」で、患者一覧のExcelを指定する"),
+        (4, "1. 「患者一覧を取り込む」で、患者一覧のExcelを指定する（点数が空の行は「点数表」シートから計算して入れる）"),
         (5, "2. 「コーディング結果を取り込む」で、コーディング結果のCSVを指定する"),
         (6, "3. 「結果シートを更新」で、取り込んだ2シートから結果シートを書き換える"),
         (8, "結果は、患者IDと入院日が一致した行です。AI側は自信度が最も高いDPC14桁を使い、一覧のDPCと点数と比べます。"),
@@ -940,6 +1126,7 @@ def verify() -> None:
         assert "コード一致" in text
         assert "アップコーディング" in text
         assert "増収候補" in text
+        assert "点数表" in text
     with zipfile.ZipFile(OUT) as zf:
         xml = "\n".join(
             zf.read(name).decode("utf-8", errors="replace")
