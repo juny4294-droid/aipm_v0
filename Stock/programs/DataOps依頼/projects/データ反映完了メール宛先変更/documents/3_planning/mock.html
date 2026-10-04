@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>foro Core Admin — テナント詳細（通知メール）</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #1a365d;
+        --text: #1a202c;
+        --sub-text: #8b8699;
+        --border: #718096;
+        --background: #f9f9fa;
+        --white: #ffffff;
+        --disable: #e3e3e3;
+        --alert: #d31c4a;
+        --danger-bg: #fbf4f2;
+        --elevation1: 0 1px 4px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.12);
+        --modal-backdrop: rgba(26, 32, 44, 0.45);
+        --radius: 4px;
+        --font: "Noto Sans JP", "Hiragino Kaku Gothic Pro", -apple-system,
+          BlinkMacSystemFont, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: var(--font);
+        font-size: 16px;
+        font-weight: 300;
+        line-height: 1.5;
+        color: var(--text);
+        background: var(--background);
+        min-height: 100vh;
+      }
+
+      button, input { font-family: inherit; }
+
+      .global-header {
+        height: 68px;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px 0 0;
+      }
+
+      .global-header__menu {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border: 0;
+        background: transparent;
+        color: var(--white);
+        font-size: 24px;
+        font-weight: 600;
+        line-height: 1.5;
+        padding: 10px 16px;
+        cursor: pointer;
+      }
+
+      .global-header__menu-caret {
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid var(--white);
+        margin-top: 4px;
+      }
+
+      .global-header__logout {
+        border: 0;
+        background: transparent;
+        color: var(--white);
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1;
+        cursor: pointer;
+        padding: 8px 0;
+      }
+
+      .global-header__logout:hover { box-shadow: inset 0 -1px var(--white); }
+
+      .main {
+        height: calc(100vh - 68px);
+        overflow: auto;
+        padding: 32px;
+      }
+
+      .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .page-header__left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+        white-space: nowrap;
+      }
+
+      .back-link:hover { box-shadow: inset 0 -1px var(--text); }
+
+      .back-link__icon {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .page-title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        line-height: 1.5;
+        white-space: nowrap;
+      }
+
+      .page-plan {
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 1.5;
+        white-space: nowrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 40px;
+        min-width: 160px;
+        padding: 8px 16px;
+        border-radius: var(--radius);
+        border: 1px solid transparent;
+        font-size: 16px;
+        font-weight: 300;
+        line-height: 1.5;
+        cursor: pointer;
+        white-space: nowrap;
+        box-shadow: var(--elevation1);
+      }
+
+      .btn:hover:not(:disabled) { opacity: 0.7; }
+
+      .btn--primary {
+        color: var(--white);
+        background: var(--primary);
+        border-color: var(--primary);
+      }
+
+      .btn--basic {
+        color: var(--text);
+        background: var(--white);
+        border-color: var(--border);
+      }
+
+      .btn--table {
+        height: 32px;
+        min-width: 72px;
+        padding: 4px 12px;
+        font-size: 14px;
+      }
+
+      .tab-bar {
+        display: flex;
+        width: 100%;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 16px;
+        overflow-x: auto;
+      }
+
+      .tab-bar__item {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        padding: 8px 16px;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.5;
+        color: var(--sub-text);
+        cursor: default;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .tab-bar__item.is-current {
+        color: var(--text);
+        border-bottom-color: var(--primary);
+      }
+
+      .tab-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .action-bar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .table-section { width: 100%; overflow-x: auto; }
+
+      .data-table {
+        width: 1680px;
+        min-width: 1680px;
+        border-collapse: collapse;
+        table-layout: fixed;
+        border-radius: var(--radius);
+        box-shadow: var(--elevation1);
+        background: var(--white);
+      }
+
+      .data-table thead tr {
+        height: 40px;
+        background: var(--primary);
+      }
+
+      .data-table th {
+        padding: 0 8px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.5;
+        color: var(--white);
+        white-space: nowrap;
+        vertical-align: middle;
+      }
+
+      .data-table th + th { border-left: 1px solid var(--border); }
+
+      .data-table tbody tr {
+        height: 64px;
+        background: var(--white);
+      }
+
+      .data-table tbody tr + tr { border-top: 1px solid var(--border); }
+
+      .data-table td {
+        padding: 0 8px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 300;
+        line-height: 1.5;
+        color: var(--text);
+        vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .data-table td + td { border-left: 1px solid var(--border); }
+      .data-table td.text-left { text-align: left; }
+
+      .data-table tbody tr.is-inactive { background: var(--disable); }
+      .data-table tbody tr.is-inactive td { color: var(--sub-text); }
+
+      .data-table tbody tr:last-child td:first-child { border-bottom-left-radius: var(--radius); }
+      .data-table tbody tr:last-child td:last-child { border-bottom-right-radius: var(--radius); }
+      .data-table thead tr th:first-child { border-top-left-radius: var(--radius); }
+      .data-table thead tr th:last-child { border-top-right-radius: var(--radius); }
+
+      .cell-id { font-size: 12px; }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: var(--modal-backdrop);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+      }
+
+      .modal-backdrop.is-open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .modal {
+        background: var(--white);
+        border-radius: var(--radius);
+        box-shadow: var(--elevation1);
+        width: 100%;
+        max-width: 520px;
+        max-height: min(88vh, 720px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .modal__head {
+        padding: 16px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--disable);
+      }
+
+      .modal__head h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 1.5;
+      }
+
+      .modal__close {
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: transparent;
+        border-radius: var(--radius);
+        cursor: pointer;
+        color: var(--sub-text);
+        font-size: 24px;
+        line-height: 1;
+        padding: 0;
+      }
+
+      .modal__close:hover { opacity: 0.7; }
+
+      .modal__body { padding: 16px; overflow-y: auto; }
+
+      .modal__foot {
+        padding: 16px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        border-top: 1px solid var(--disable);
+      }
+
+      .modal__foot .btn { min-width: 86px; }
+
+      .form-field + .form-field { margin-top: 12px; }
+
+      .form-label {
+        display: block;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.5;
+        margin-bottom: 4px;
+      }
+
+      .form-label__required { color: var(--alert); margin-left: 2px; }
+
+      .input-text {
+        width: 100%;
+        height: 40px;
+        padding: 0 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 16px;
+        font-weight: 300;
+        line-height: 1.5;
+        color: var(--text);
+        background: var(--white);
+        box-shadow: var(--elevation1);
+      }
+
+      .input-text:focus {
+        outline: 1px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .input-text.is-error {
+        outline: 1px solid var(--alert);
+        outline-offset: 2px;
+      }
+
+      .error-message {
+        margin: 4px 0 0;
+        font-size: 12px;
+        font-weight: 300;
+        line-height: 1.5;
+        color: var(--alert);
+        display: none;
+      }
+
+      .error-message.is-visible { display: block; }
+
+      .alert {
+        display: none;
+        padding: 12px 16px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        margin-bottom: 16px;
+        font-size: 14px;
+        font-weight: 300;
+        line-height: 1.5;
+      }
+
+      .alert.is-visible { display: block; }
+
+      .alert--error {
+        background: var(--danger-bg);
+        border-color: var(--alert);
+        color: var(--alert);
+      }
+
+      .status-field {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--disable);
+      }
+
+      .check-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        font-weight: 300;
+        cursor: pointer;
+      }
+
+      .check-row input { width: 18px; height: 18px; margin: 0; }
+
+      .field-hint {
+        margin: 4px 0 0;
+        font-size: 12px;
+        font-weight: 300;
+        color: var(--sub-text);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="global-header">
+      <button type="button" class="global-header__menu">
+        foro Core Admin
+        <span class="global-header__menu-caret" aria-hidden="true"></span>
+      </button>
+      <button type="button" class="global-header__logout">ログアウト</button>
+    </header>
+
+    <main class="main">
+      <header class="page-header">
+        <div class="page-header__left">
+          <button type="button" class="back-link">
+            <span class="back-link__icon" aria-hidden="true">←</span>
+            戻る
+          </button>
+          <h1 class="page-title">tama.marianna-u</h1>
+          <span class="page-plan">(プラン: standard202211)</span>
+        </div>
+        <button type="button" class="btn btn--basic">テナント編集</button>
+      </header>
+
+      <nav class="tab-bar" aria-label="テナント詳細タブ">
+        <button type="button" class="tab-bar__item">アカウント</button>
+        <button type="button" class="tab-bar__item">紹介</button>
+        <button type="button" class="tab-bar__item">逆紹介</button>
+        <button type="button" class="tab-bar__item">入院</button>
+        <button type="button" class="tab-bar__item is-current">通知メール</button>
+        <button type="button" class="tab-bar__item">外来EF</button>
+        <button type="button" class="tab-bar__item">診療科</button>
+        <button type="button" class="tab-bar__item">診療科グループ</button>
+        <button type="button" class="tab-bar__item">施設タイプデフォルト</button>
+        <button type="button" class="tab-bar__item">連携先セグメント</button>
+        <button type="button" class="tab-bar__item">競合先</button>
+        <button type="button" class="tab-bar__item">レポートインポート</button>
+        <button type="button" class="tab-bar__item">IPアドレス制限</button>
+      </nav>
+
+      <section class="tab-panel" aria-label="通知メール">
+        <div class="action-bar">
+          <button type="button" class="btn btn--primary" id="open-create">新規登録</button>
+        </div>
+        <div class="table-section">
+          <table class="data-table" aria-label="通知メール宛先">
+            <thead>
+              <tr>
+                <th style="width: 280px">ID</th>
+                <th style="width: 110px">テナントID</th>
+                <th style="width: 140px">氏名</th>
+                <th style="width: 80px">敬称</th>
+                <th style="width: 280px">メールアドレス</th>
+                <th style="width: 160px">最終送信日時</th>
+                <th style="width: 160px">作成日時</th>
+                <th style="width: 160px">更新日時</th>
+                <th style="width: 80px">順番</th>
+                <th style="width: 90px">稼働</th>
+                <th style="width: 100px"></th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal-backdrop" id="backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <form class="modal" id="form">
+        <div class="modal__head">
+          <h2 id="modal-title">新規登録</h2>
+          <button type="button" class="modal__close" id="modal-close" aria-label="閉じる">×</button>
+        </div>
+        <div class="modal__body">
+          <div class="alert alert--error" id="alert-error" role="alert"></div>
+
+          <div class="form-field">
+            <label class="form-label" for="name">氏名<span class="form-label__required">*</span></label>
+            <input class="input-text" type="text" id="name" autocomplete="off" />
+            <p class="error-message" id="err-name">氏名を入力してください</p>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="honorific">敬称<span class="form-label__required">*</span></label>
+            <input class="input-text" type="text" id="honorific" autocomplete="off" />
+            <p class="error-message" id="err-honorific">敬称を入力してください</p>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="email">メールアドレス<span class="form-label__required">*</span></label>
+            <input class="input-text" type="text" id="email" autocomplete="off" />
+            <p class="error-message" id="err-email"></p>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="order">順番<span class="form-label__required">*</span></label>
+            <input class="input-text" type="text" id="order" inputmode="numeric" autocomplete="off" />
+            <p class="error-message" id="err-order"></p>
+          </div>
+          <div class="status-field">
+            <span class="form-label">稼働</span>
+            <label class="check-row">
+              <input type="checkbox" id="enabled" />
+              稼働
+            </label>
+            <p class="field-hint">ON が稼働、OFF が非稼働</p>
+          </div>
+        </div>
+        <div class="modal__foot">
+          <button type="button" class="btn btn--basic" id="cancel">キャンセル</button>
+          <button type="submit" class="btn btn--primary">保存</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      const TENANT_ID = 167;
+      const rowsEl = document.getElementById("rows");
+      const backdrop = document.getElementById("backdrop");
+      const form = document.getElementById("form");
+      const alertError = document.getElementById("alert-error");
+      let users = [
+        row("山田 太郎", "様", "yamada.taro@example.com", 1, true, "2026-09-20 09:00", "2026-08-01 10:00", "2026-09-20 09:00"),
+        row("佐藤 花子", "様", "sato.hanako@example.com", 2, true, "2026-09-18 11:30", "2026-08-01 10:05", "2026-09-18 11:30"),
+        row("鈴木 一郎", "様", "suzuki.ichiro@example.com", 3, false, "2026-07-02 08:15", "2026-06-01 09:00", "2026-09-01 16:40")
+      ];
+      let editingId = null;
+
+      function row(name, honorific, email, order, enabled, lastSent, created, updated) {
+        return {
+          id: crypto.randomUUID(),
+          tenantId: TENANT_ID,
+          name, honorific, email, order, enabled,
+          lastSentAt: lastSent,
+          createdAt: created,
+          updatedAt: updated
+        };
+      }
+
+      function nowText() {
+        const d = new Date();
+        const p = (n) => String(n).padStart(2, "0");
+        return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function render() {
+        const sorted = users.slice().sort((a, b) => a.order - b.order);
+        rowsEl.innerHTML = sorted.map((user) => `
+          <tr class="${user.enabled ? "" : "is-inactive"}">
+            <td class="cell-id">${user.id}</td>
+            <td>${user.tenantId}</td>
+            <td>${escapeHtml(user.name)}</td>
+            <td>${escapeHtml(user.honorific)}</td>
+            <td class="text-left">${escapeHtml(user.email)}</td>
+            <td>${user.lastSentAt}</td>
+            <td>${user.createdAt}</td>
+            <td>${user.updatedAt}</td>
+            <td>${user.order}</td>
+            <td>${user.enabled ? "稼働" : "非稼働"}</td>
+            <td><button type="button" class="btn btn--basic btn--table" data-edit="${user.id}">変更</button></td>
+          </tr>
+        `).join("");
+      }
+
+      function clearErrors() {
+        alertError.classList.remove("is-visible");
+        alertError.textContent = "";
+        ["name", "honorific", "email", "order"].forEach((id) => {
+          document.getElementById(id).classList.remove("is-error");
+        });
+        ["err-name", "err-honorific", "err-email", "err-order"].forEach((id) => {
+          document.getElementById(id).classList.remove("is-visible");
+        });
+      }
+
+      function showFieldError(inputId, messageId, message) {
+        document.getElementById(inputId).classList.add("is-error");
+        const el = document.getElementById(messageId);
+        if (message) el.textContent = message;
+        el.classList.add("is-visible");
+      }
+
+      function openModal(user) {
+        editingId = user ? user.id : null;
+        document.getElementById("modal-title").textContent = user ? "変更" : "新規登録";
+        document.getElementById("name").value = user ? user.name : "";
+        document.getElementById("honorific").value = user ? user.honorific : "様";
+        document.getElementById("email").value = user ? user.email : "";
+        document.getElementById("order").value = user ? String(user.order) : "";
+        document.getElementById("enabled").checked = user ? user.enabled : true;
+        clearErrors();
+        backdrop.classList.add("is-open");
+        document.getElementById("name").focus();
+      }
+
+      function closeModal() {
+        backdrop.classList.remove("is-open");
+        editingId = null;
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        clearErrors();
+        const name = document.getElementById("name").value.trim();
+        const honorific = document.getElementById("honorific").value.trim();
+        const email = document.getElementById("email").value.replace(/\s+$/g, "");
+        const orderText = document.getElementById("order").value.trim();
+        const enabled = document.getElementById("enabled").checked;
+        document.getElementById("email").value = email;
+
+        let invalid = false;
+        if (!name) {
+          showFieldError("name", "err-name");
+          invalid = true;
+        }
+        if (!honorific) {
+          showFieldError("honorific", "err-honorific");
+          invalid = true;
+        }
+        if (!email) {
+          showFieldError("email", "err-email", "メールアドレスを入力してください");
+          invalid = true;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          showFieldError("email", "err-email", "メールアドレスの形式で入力してください");
+          invalid = true;
+        }
+        if (!orderText) {
+          showFieldError("order", "err-order", "順番を入力してください");
+          invalid = true;
+        } else if (!/^-?\d+$/.test(orderText)) {
+          showFieldError("order", "err-order", "順番は整数で入力してください");
+          invalid = true;
+        }
+        if (invalid) return;
+
+        const duplicated = users.some((user) => user.id !== editingId && user.tenantId === TENANT_ID && user.email === email);
+        if (duplicated) {
+          alertError.textContent = "すでに同じメールアドレスが登録されています";
+          alertError.classList.add("is-visible");
+          return;
+        }
+
+        const order = Number(orderText);
+        const stamp = nowText();
+        if (editingId) {
+          const current = users.find((user) => user.id === editingId);
+          current.name = name;
+          current.honorific = honorific;
+          current.email = email;
+          current.order = order;
+          current.enabled = enabled;
+          current.updatedAt = stamp;
+        } else {
+          users.push({
+            id: crypto.randomUUID(),
+            tenantId: TENANT_ID,
+            name, honorific, email, order, enabled,
+            lastSentAt: stamp,
+            createdAt: stamp,
+            updatedAt: stamp
+          });
+        }
+        render();
+        closeModal();
+      });
+
+      document.getElementById("open-create").addEventListener("click", () => openModal(null));
+      document.getElementById("cancel").addEventListener("click", closeModal);
+      document.getElementById("modal-close").addEventListener("click", closeModal);
+      rowsEl.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-edit]");
+        if (!button) return;
+        openModal(users.find((user) => user.id === button.dataset.edit));
+      });
+
+      render();
+    </script>
+  </body>
+</html>

@@ -15,9 +15,12 @@ TBD
 - Jun.Yamada
 
 ## 正本
-- [20261001_データ反映完了メール宛先変更](https://app.notion.com/p/3ec1da5a7f3b80088657e1e99ae803a2)
+- [20261001_データ反映完了メール宛先変更](https://app.notion.com/p/3ec1da5a7f3b80088657e1e99ae803a2)（手作業の手順）
+- [データ反映完了メール宛先変更画面構築](https://app.notion.com/p/3ec1da5a7f3b80c0b7f6fcdbc17b454e)（画面機能）
 
 ## ローカル
+- [画面仕様](documents/3_planning/画面仕様.md)（2026-10-02）
+- [画面モック](documents/3_planning/mock.html)
 - [作業手順](documents/4_executing/作業手順.md)（2026-10-01 同期）
 - [2026-10-01 実施記録](documents/4_executing/20261001_実施記録.md)
 
