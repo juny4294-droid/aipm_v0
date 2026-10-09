@@ -9,11 +9,12 @@ from pathlib import Path
 from pyopenvba import ExcelFile
 from pyopenvba.apps.excel import ExcelApplication
 
-OUT = Path(
-    "/Users/junyamada/ws/aipm_v0/Flow/202609/2026-09-25/"
-    "AIDPC_アウトプットファイル設計/20260925_コーディング結果_取り込み.xlsm"
+PROJECT = Path(
+    "/Users/junyamada/ws/aipm_v0/Stock/programs/AIDPC/projects/アウトプットファイル設計"
 )
-MASTER = OUT.parent / "input" / "診断群分類電子点数表.xlsx"
+OUT = PROJECT / "development" / "code" / "コーディング結果_取り込み.xlsm"
+MASTER = PROJECT / "attachments" / "診断群分類電子点数表.xlsx"
+DISEASE_NAMES = PROJECT / "attachments" / "DPC6桁病名.xlsx"
 
 VBA = r"""Option Explicit
 
@@ -98,10 +99,13 @@ Public Sub UpdateResultSheet()
         GoTo Done
     End If
 
+    Dim nameIndex As Collection
+    Set nameIndex = DiseaseNameIndex()
+
     Dim usedRows() As Boolean
     ReDim usedRows(1 To cLast)
     Dim out() As Variant
-    ReDim out(1 To pLast, 1 To 20)
+    ReDim out(1 To pLast, 1 To 22)
     Dim n As Long
     n = 0
     Dim r As Long
@@ -127,21 +131,23 @@ Public Sub UpdateResultSheet()
         If cIcd > 0 Then out(n, 9) = coding(best, cIcd)
         If cIcdName > 0 Then out(n, 10) = coding(best, cIcdName)
         out(n, 11) = coding(best, cDpc)
-        out(n, 12) = ToNumber(coding(best, cScore))
-        out(n, 13) = ScoreDiff(out(n, 12), out(n, 8))
-        out(n, 14) = CodeLabel(out(n, 7), out(n, 11))
-        out(n, 15) = EvalLabel(out(n, 14), out(n, 8), out(n, 12))
+        out(n, 12) = DiseaseName(nameIndex, out(n, 11))
+        out(n, 13) = ToNumber(coding(best, cScore))
+        out(n, 14) = ScoreDiff(out(n, 13), out(n, 8))
+        out(n, 15) = CodeLabel(out(n, 7), out(n, 11))
+        out(n, 16) = EvalLabel(out(n, 15), out(n, 8), out(n, 13))
         usedRows(best) = True
         Dim topRow As Long
         topRow = TopScoreRow(coding, cId, cAdm, cDpc, cScore, cConf, idKey, dateKey, threshold)
         If topRow > 0 Then
-            out(n, 16) = coding(topRow, cDpc)
-            out(n, 17) = ToNumber(coding(topRow, cScore))
-            out(n, 18) = ScoreDiff(out(n, 17), out(n, 8))
-            out(n, 19) = IncreaseLabel(out(n, 17), out(n, 8))
+            out(n, 17) = coding(topRow, cDpc)
+            out(n, 18) = DiseaseName(nameIndex, out(n, 17))
+            out(n, 19) = ToNumber(coding(topRow, cScore))
+            out(n, 20) = ScoreDiff(out(n, 19), out(n, 8))
+            out(n, 21) = IncreaseLabel(out(n, 19), out(n, 8))
             usedRows(topRow) = True
         End If
-        out(n, 20) = best
+        out(n, 22) = best
 NextPatient:
     Next r
 
@@ -150,26 +156,26 @@ NextPatient:
     wsR.Cells.Clear
     wsR.Range("A1").Value = "AIコーディング前"
     wsR.Range("I1").Value = "コーディング結果（最高自信度）"
-    wsR.Range("P1").Value = "コーディング結果（閾値" & thrText & "以上）"
+    wsR.Range("Q1").Value = "コーディング結果（閾値" & thrText & "以上）"
     Dim headers As Variant
     headers = Array( _
         "患者ID", "入院日", "退院日", "在院日数", "診療科", "病棟", "DPC", "点数", _
-        "ICD10コード", "ICD10名称", "DPC", "点数", "点数差", "コード一致", "評価", _
-        "最高点のDPC", "点数", "点数差", "増収候補")
+        "ICD10コード", "ICD10名称", "DPC", "DPC病名", "点数", "点数差", "コード一致", "評価", _
+        "最高点のDPC", "DPC病名", "点数", "点数差", "増収候補")
     For i = 0 To UBound(headers)
         wsR.Cells(2, i + 1).Value = headers(i)
     Next i
     If n > 0 Then
-        wsR.Range("A3").Resize(n, 20).Value = SliceRows(out, n, 20)
-        wsR.Range("A3").Resize(n, 20).Sort _
+        wsR.Range("A3").Resize(n, 22).Value = SliceRows(out, n, 22)
+        wsR.Range("A3").Resize(n, 22).Sort _
             Key1:=wsR.Range("B3"), Order1:=xlAscending, _
             Key2:=wsR.Range("A3"), Order2:=xlAscending, _
             Header:=xlNo
         For r = 3 To n + 2
             wsR.Hyperlinks.Add Anchor:=wsR.Cells(r, 1), Address:="", _
-                SubAddress:="'" & CodingName() & "'!A" & wsR.Cells(r, 20).Value
+                SubAddress:="'" & CodingName() & "'!A" & wsR.Cells(r, 22).Value
         Next r
-        wsR.Range("T3").Resize(n, 1).ClearContents
+        wsR.Range("V3").Resize(n, 1).ClearContents
     End If
     FormatResult wsR, n
     HideUnusedRows wsC, usedRows, cLast
@@ -358,6 +364,41 @@ Private Function MasterScore( _
         End If
     Next i
     MasterScore = CLng(total)
+End Function
+
+Private Function DiseaseNameIndex() As Collection
+    Dim index As New Collection
+    Set DiseaseNameIndex = index
+    Dim ws As Worksheet
+    If Not TrySheet(DiseaseSheetName(), ws) Then Exit Function
+    Dim lastR As Long, lastC As Long
+    lastR = LastRow(ws)
+    lastC = LastCol(ws)
+    If lastR < 2 Or lastC < 1 Then Exit Function
+    Dim data As Variant
+    data = ws.Range("A1").Resize(lastR, lastC).Value
+    Dim cName As Long
+    cName = ColOf(data, "名称")
+    If cName = 0 Then Exit Function
+    Dim r As Long
+    For r = 2 To lastR
+        Dim key As String
+        key = NormCode(data(r, 1))
+        If Len(key) > 0 Then
+            On Error Resume Next
+            index.Add CStr(AsText(data(r, cName))), key
+            On Error GoTo 0
+        End If
+    Next r
+End Function
+
+Private Function DiseaseName(ByVal index As Collection, ByVal dpc As Variant) As String
+    Dim key As String
+    key = NormCode(dpc)
+    If Len(key) < 6 Then Exit Function
+    On Error Resume Next
+    DiseaseName = index(Left$(key, 6))
+    On Error GoTo 0
 End Function
 
 Private Function MinLong(ByVal a As Long, ByVal b As Long) As Long
@@ -929,7 +970,7 @@ Private Sub FormatResult(ByVal ws As Worksheet, ByVal n As Long)
     ws.Activate
     Dim last As Long
     last = n + 2
-    With ws.Range("A1:S2")
+    With ws.Range("A1:U2")
         .Font.Bold = True
         .Font.Color = vbWhite
         .Font.Name = "游ゴシック"
@@ -939,19 +980,19 @@ Private Sub FormatResult(ByVal ws As Worksheet, ByVal n As Long)
         .Borders.Color = vbWhite
     End With
     ws.Range("A1:H1").HorizontalAlignment = xlCenterAcrossSelection
-    ws.Range("I1:O1").HorizontalAlignment = xlCenterAcrossSelection
-    ws.Range("P1:S1").HorizontalAlignment = xlCenterAcrossSelection
-    ws.Range("A1:S1").Borders(xlInsideVertical).LineStyle = xlNone
+    ws.Range("I1:P1").HorizontalAlignment = xlCenterAcrossSelection
+    ws.Range("Q1:U1").HorizontalAlignment = xlCenterAcrossSelection
+    ws.Range("A1:U1").Borders(xlInsideVertical).LineStyle = xlNone
     Dim edge As Variant
-    For Each edge In Array("H1", "O1")
+    For Each edge In Array("H1", "P1")
         ws.Range(edge).Borders(xlEdgeRight).LineStyle = xlContinuous
         ws.Range(edge).Borders(xlEdgeRight).Color = vbWhite
     Next edge
-    ws.Range("A2:S2").HorizontalAlignment = xlCenter
+    ws.Range("A2:U2").HorizontalAlignment = xlCenter
     ws.Rows(1).RowHeight = 24
     ws.Rows(2).RowHeight = 30
     ws.Range("A1:H2").Interior.Color = RGB(31, 78, 121)
-    ws.Range("I1:S2").Interior.Color = RGB(56, 87, 35)
+    ws.Range("I1:U2").Interior.Color = RGB(56, 87, 35)
     ws.Columns("A").ColumnWidth = 12
     ws.Columns("B:C").ColumnWidth = 14
     ws.Columns("D").ColumnWidth = 10
@@ -962,24 +1003,26 @@ Private Sub FormatResult(ByVal ws As Worksheet, ByVal n As Long)
     ws.Columns("I").ColumnWidth = 14
     ws.Columns("J").ColumnWidth = 36
     ws.Columns("K").ColumnWidth = 18
-    ws.Columns("L").ColumnWidth = 12
+    ws.Columns("L").ColumnWidth = 30
     ws.Columns("M").ColumnWidth = 12
-    ws.Columns("N").ColumnWidth = 16
-    ws.Columns("O").ColumnWidth = 24
-    ws.Columns("P").ColumnWidth = 18
-    ws.Columns("Q").ColumnWidth = 12
-    ws.Columns("R").ColumnWidth = 12
+    ws.Columns("N").ColumnWidth = 12
+    ws.Columns("O").ColumnWidth = 16
+    ws.Columns("P").ColumnWidth = 24
+    ws.Columns("Q").ColumnWidth = 18
+    ws.Columns("R").ColumnWidth = 30
     ws.Columns("S").ColumnWidth = 12
+    ws.Columns("T").ColumnWidth = 12
+    ws.Columns("U").ColumnWidth = 12
     If n > 0 Then
-        ws.Range("A3:S" & last).Font.Name = "游ゴシック"
+        ws.Range("A3:U" & last).Font.Name = "游ゴシック"
         ws.Range("B3:C" & last).NumberFormat = "yyyy-mm-dd"
         ws.Range("D3:D" & last).NumberFormat = "0"
         ws.Range("H3:H" & last).NumberFormat = "#,##0"
-        ws.Range("L3:M" & last).NumberFormat = "#,##0"
-        ws.Range("Q3:R" & last).NumberFormat = "#,##0"
+        ws.Range("M3:N" & last).NumberFormat = "#,##0"
+        ws.Range("S3:T" & last).NumberFormat = "#,##0"
         ws.Rows("3:" & last).VerticalAlignment = xlCenter
     End If
-    ws.Range("A2:S" & last).AutoFilter
+    ws.Range("A2:U" & last).AutoFilter
     With ActiveWindow
         .FreezePanes = False
         .ScrollRow = 1
@@ -1016,6 +1059,10 @@ End Function
 Private Function MasterName() As String
     MasterName = "点数表"
 End Function
+
+Private Function DiseaseSheetName() As String
+    DiseaseSheetName = "DPC6桁病名"
+End Function
 """
 
 
@@ -1032,19 +1079,23 @@ def patch_code_page(raw: bytes, new_cp: int = 932) -> bytes:
     return bytes(buf)
 
 
-def add_master_sheet(app, book, after_view) -> None:
+def add_copied_sheet(app, book, after_view, name: str, path: Path, text_columns: str = ""):
     from openpyxl import load_workbook
     from openpyxl.utils import get_column_letter
 
     added = book.vba_get("Sheets").Add()
-    added.vba_set("Name", "点数表")
-    view = next(v for v in app.sheets() if v.name == "点数表")
+    added.vba_set("Name", name)
+    view = next(v for v in app.sheets() if v.name == name)
     view.sheet.Move(After=after_view.sheet)
-    source = load_workbook(MASTER, read_only=True, data_only=True).worksheets[0]
+    if text_columns:
+        # Codes such as 010010 must stay text or the leading zero is lost.
+        view.sheet.vba_get("Columns", [text_columns]).vba_set("NumberFormat", "@")
+    source = load_workbook(path, read_only=True, data_only=True).worksheets[0]
     for r, row in enumerate(source.iter_rows(values_only=True), start=1):
         for c, value in enumerate(row, start=1):
             if value is not None:
                 view.set_value(f"{get_column_letter(c)}{r}", value)
+    return view
 
 
 def build_shell() -> None:
@@ -1065,7 +1116,8 @@ def build_shell() -> None:
             result_sheet = view
     assert cover_sheet is not None and result_sheet is not None
     result_sheet.sheet.Move(After=cover_sheet.sheet)
-    add_master_sheet(app, book, result_sheet)
+    master_sheet = add_copied_sheet(app, book, result_sheet, "点数表", MASTER)
+    add_copied_sheet(app, book, master_sheet, "DPC6桁病名", DISEASE_NAMES, "A:C")
 
     lines = [
         (1, "コーディング結果をユーザー向けに整える"),
@@ -1127,6 +1179,7 @@ def verify() -> None:
         assert "アップコーディング" in text
         assert "増収候補" in text
         assert "点数表" in text
+        assert "DPC6桁病名" in text
     with zipfile.ZipFile(OUT) as zf:
         xml = "\n".join(
             zf.read(name).decode("utf-8", errors="replace")
