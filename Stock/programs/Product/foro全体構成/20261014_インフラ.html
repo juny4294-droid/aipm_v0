@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>foro インフラ構成 2026-10-14</title>
+  <style>
+    :root {
+      --title: #0822b1;
+      --ink: #1a1a1a;
+      --muted: #5c6370;
+      --line: #d0d4da;
+      --blue: #015df4;
+      --blue-bg: #ecf5fe;
+      --chip: #f4f5f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #fff;
+      color: var(--ink);
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "YuGothic", "Meiryo", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.92em;
+    }
+    .page {
+      width: 1400px;
+      padding: 32px 40px 24px;
+      background: #fff;
+    }
+    h1 {
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--title);
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+    }
+    .lead {
+      margin-top: 8px;
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    h2 {
+      margin: 22px 0 10px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--blue);
+    }
+    .row {
+      display: grid;
+      gap: 10px;
+    }
+    .row.two { grid-template-columns: 1fr 1fr; }
+    .row.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .card {
+      border: 1.5px solid var(--blue);
+      border-radius: 10px;
+      padding: 12px 14px 11px;
+      background: #fff;
+    }
+    .card.soft {
+      border-color: var(--line);
+      background: var(--chip);
+    }
+    .name { font-size: 16px; font-weight: 700; line-height: 1.35; }
+    .role { margin-top: 4px; font-size: 13px; line-height: 1.45; color: #243044; }
+    .k {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--blue);
+      margin-bottom: 4px;
+    }
+    .link {
+      margin: 8px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .cluster {
+      border: 1.5px solid var(--blue);
+      border-radius: 10px;
+      padding: 14px;
+      background: var(--blue-bg);
+    }
+    .cluster-head { font-size: 16px; font-weight: 700; }
+    .cluster-meta { margin-top: 3px; font-size: 13px; color: #243044; }
+    .instances {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .inst {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .bq {
+      margin-top: 10px;
+      border: 1.5px solid var(--blue);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .foot {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="page" id="sheet">
+    <h1>foro インフラ構成</h1>
+    <p class="lead">2026-10-14 時点の本番。GCP プロジェクト <code>medup-foro</code>、リージョン <code>asia-northeast1</code>。線になる接続は、資料に書いてあるものだけ。</p>
+
+    <h2>画面</h2>
+    <div class="row two">
+      <article class="card">
+        <div class="name">foro CRM の SPA</div>
+        <p class="role">メンテナンス画面は、この SPA だけが切り替わる。API やほかの foro は切り替わらない。</p>
+      </article>
+      <article class="card soft">
+        <div class="name">入退院など、ほかの画面</div>
+        <p class="role">どの Cloud Run に乗るかは、この版では未確認。</p>
+      </article>
+    </div>
+
+    <h2>Cloud Run</h2>
+    <p class="k">2026-05-08 のログでサービス名まで確認</p>
+    <div class="row four">
+      <article class="card">
+        <div class="name"><code>foro-query-service-production</code></div>
+        <p class="role">読み取りプールへ接続する。接続が切れると落ちることがあり、Cloud Run が立て直す。</p>
+      </article>
+      <article class="card">
+        <div class="name"><code>foro-command-service-production</code></div>
+        <p class="role">接続先のインスタンスは未確認。</p>
+      </article>
+      <article class="card">
+        <div class="name"><code>foro-job-worker-production</code></div>
+        <p class="role">作業計画に、キュー <code>foro-job-worker-prd-queue</code> とアラート <code>foro-job-worker-error</code> がある。このサービスが使うとまでは書いていない。</p>
+      </article>
+      <article class="card">
+        <div class="name"><code>medup-core-service-api-production</code></div>
+        <p class="role">接続先のインスタンスは未確認。</p>
+      </article>
+    </div>
+    <p class="k" style="margin-top:12px">2026-10-14 の作業計画に名前があるもの</p>
+    <div class="row two">
+      <article class="card">
+        <div class="name"><code>foro-crm-api</code></div>
+        <p class="role">起動時に DB へ接続する。primary か read かは未確認。</p>
+      </article>
+      <article class="card">
+        <div class="name"><code>foro-crm-worker</code></div>
+        <p class="role">作業計画に、キュー <code>foro-crm-worker-prd-queue</code> とアラート <code>foro-crm-worker-prd-error-log</code> がある。</p>
+      </article>
+    </div>
+
+    <h2>AlloyDB</h2>
+    <div class="cluster">
+      <div class="cluster-head">クラスタ <code>medup-foro-alloydb-kms-prd</code></div>
+      <p class="cluster-meta">データベース <code>foro_prd</code>。作業計画が挙げるマシンサイズは 2 vCPU / 16GB。人が中を見るときは <code>alloy-vm</code> 経由のトンネル。</p>
+      <div class="instances">
+        <article class="inst">
+          <div class="k">PRIMARY</div>
+          <div class="name"><code>medup-foro-prd</code></div>
+          <p class="role">Datastream の 3 本は、ここにつながっている。</p>
+        </article>
+        <article class="inst">
+          <div class="k">READ POOL</div>
+          <div class="name"><code>medup-foro-read-prd</code></div>
+          <p class="role"><code>foro-query-service-production</code> が接続する。ノード数は未確認。</p>
+        </article>
+      </div>
+    </div>
+
+    <h2>PRIMARY から BIGQUERY へ</h2>
+    <div class="chips">
+      <span class="chip"><code>foro-prd-to-bigquery</code></span>
+      <span class="chip"><code>mis-prd-to-bigquery</code></span>
+      <span class="chip"><code>dataops-prd-to-bigquery</code></span>
+    </div>
+    <div class="bq">BigQuery</div>
+    <p class="link">3 本とも Datastream。場所は <code>asia-northeast1</code>、プロジェクトは <code>medup-foro</code>。</p>
+
+    <p class="foot">
+      根拠は、2026-10-14 の AlloyDB 作業計画と、2026-05-08 のアラート調査。構成管理の記載では、実行は Cloud Run、ネットワークはプライベート VPC、設定ファイルは GitHub の yml。<br />
+      ログ確認の対象として、プロジェクト <code>analytics-tool-206405</code> と <code>medup-data-platform</code> も名前がある。中身はこの図に入れていない。<br />
+      2023-09 の全体像にあった Redis、Cloud SQL、SendGrid、Azure AD B2C は、この版の根拠にないので載せていない。
+    </p>
+  </div>
+</body>
+</html>

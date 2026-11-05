@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>foro 入退院調整 — 相談一覧</title>
+    <style>
+      :root {
+        --text: #08151a;
+        --sub: #6b7376;
+        --muted: #a2a6a9;
+        --border: #cdd0d1;
+        --border-subtle: #e2e3e3;
+        --border-bold: #a2a6a9;
+        --bg-page: #fbf8ff;
+        --bg: #ffffff;
+        --bg-sub: #f3f3f4;
+        --hover: #eff1f2;
+        --skeleton-hover: rgba(8, 21, 26, 0.06);
+        --primary: #4e5ef2;
+        --primary-hover: #1f3eec;
+        --primary-active: #0012a0;
+        --primary-soft: #eeedfe;
+        --primary-soft-2: #dfe0ff;
+        --primary-border: #bdc2ff;
+        --warning-bg: #fffbeb;
+        --warning-text: #a15c00;
+        --warning-border: #eeab00;
+        --success: #36a286;
+        --danger: #b32200;
+        --danger-border: #d92a00;
+        --scrim: rgba(8, 21, 26, 0.38);
+        --nav-open: 256px;
+        --nav-closed: 45px;
+        --font: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: var(--font);
+        color: var(--text);
+        background: var(--bg-page);
+        font-size: 14px;
+        line-height: 1.5;
+        letter-spacing: 0.04em;
+      }
+      button, input, select, textarea { font-family: inherit; color: inherit; letter-spacing: inherit; outline: none; }
+      button { cursor: pointer; }
+      .app { display: flex; min-height: 100vh; }
+
+      .nav {
+        width: var(--nav-open);
+        flex: none;
+        border-right: 1px solid var(--border-subtle);
+        padding: 12px 0;
+        transition: width 0.2s ease;
+        background: var(--bg);
+      }
+      .nav.is-closed { width: var(--nav-closed); }
+      .nav-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 4px 16px 12px;
+      }
+      .nav.is-closed .nav-head { justify-content: center; padding: 0 0 16px; }
+      .logo {
+        height: 32px;
+        display: flex;
+        align-items: center;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      .logo img { height: 32px; display: block; }
+      .nav.is-closed .logo { display: none; }
+      .icon-btn {
+        width: 44px;
+        height: 44px;
+        border: 0;
+        background: transparent;
+        border-radius: 4px;
+        color: var(--sub);
+      }
+      .icon-btn:hover { background: var(--hover); }
+      .nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px;
+        color: var(--sub);
+        text-decoration: none;
+        border-radius: 4px;
+        position: relative;
+        white-space: nowrap;
+        font-size: 12px;
+        line-height: 1.25;
+        letter-spacing: 0.48px;
+      }
+      .nav a:hover { background: var(--hover); }
+      .nav a.is-active {
+        color: var(--text);
+        background: var(--hover);
+      }
+      .nav a.is-active::before,
+      .nav a:hover::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 4px;
+        bottom: 4px;
+        width: 3px;
+        border-radius: 0 2px 2px 0;
+        background: var(--border);
+      }
+      .nav a.is-active::before { background: var(--primary); }
+      .nav.is-closed a span { display: none; }
+
+      .workspace { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg-page); }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 40px;
+        border-bottom: 1px solid var(--border);
+      }
+      .header h1 { margin: 0; font-size: 20px; font-weight: 400; line-height: 1.25; letter-spacing: 0.8px; }
+      .account { position: relative; }
+      .popover {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        width: 240px;
+        background: #fff;
+        border-radius: 4px;
+        box-shadow: 0 4px 16px rgba(8, 21, 26, 0.16);
+        padding: 8px 0;
+        z-index: 20;
+      }
+      .popover .who { padding: 8px 16px; font-weight: 700; }
+      .popover button, .menu button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        padding: 8px 16px;
+      }
+      .popover button:hover, .menu button:hover { background: var(--hover); }
+
+      .main { padding: 0; background: var(--bg); display: flex; flex-direction: column; flex: 1; }
+      #page-list { background: var(--bg); }
+      #page-dashboard { background: var(--bg-page); padding: 24px; flex: 1; }
+      .delta-note {
+        margin: 16px 32px 0;
+        padding: 8px 12px;
+        background: var(--warning-bg);
+        color: var(--warning-text);
+        border: 1px solid var(--warning-border);
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .delta-note[hidden] { display: none; }
+      .is-new { outline: 2px solid var(--warning-border); outline-offset: 2px; }
+
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        padding: 24px 32px 16px;
+      }
+      .filters { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; flex: 1; }
+      .search {
+        position: relative;
+        width: 320px;
+        flex: none;
+      }
+      .search input, .field input, .field select, .field textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 8px 12px;
+        background: #fff;
+        font-size: 14px;
+      }
+      .field input[type="checkbox"],
+      .field input[type="radio"] {
+        width: auto;
+        padding: 0;
+        border: 0;
+      }
+      .search input { height: 36px; padding: 8px 36px 8px 12px; }
+      .search input::placeholder { color: var(--muted); }
+      .search .suffix {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--sub);
+        pointer-events: none;
+      }
+      .chip {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 40px;
+        padding: 6px 12px;
+        min-height: 30px;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 1.25;
+        letter-spacing: 0.48px;
+      }
+      .chip:hover { background: var(--hover); }
+      .chip.is-on { border-color: var(--primary); color: var(--primary-hover); background: var(--primary-soft); font-weight: 700; }
+      .chip-wrap { position: relative; }
+      .actions { display: flex; flex-direction: column; gap: 16px; align-items: flex-end; flex: none; }
+      .actions-row { display: flex; gap: 8px; align-items: center; }
+      .btn {
+        border-radius: 4px;
+        min-height: 36px;
+        min-width: 72px;
+        padding: 7px 15px;
+        font-weight: 700;
+        font-size: 14px;
+        line-height: 1.25;
+        letter-spacing: 0.56px;
+        border: 1px solid transparent;
+      }
+      .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+      .btn-primary:hover { background: var(--primary-hover); }
+      .btn-secondary { background: #fff; border-color: var(--border-bold); }
+      .btn-secondary:hover { background: var(--hover); }
+      .btn-danger { background: #fff; color: var(--danger); border-color: var(--danger-border); }
+      .menu { position: relative; }
+      .check-list { min-width: 200px; }
+      .check-list label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 16px;
+      }
+
+      .table-wrap { overflow: auto; }
+      table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--bg); font-size: 12px; }
+      th, td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-subtle);
+        white-space: nowrap;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 1.5;
+        letter-spacing: 0.48px;
+        color: var(--text);
+      }
+      th:first-child, td:first-child { padding-left: 24px; }
+      th:last-child, td:last-child { padding-right: 24px; }
+      th {
+        background: var(--bg-sub);
+        font-size: 10px;
+        line-height: 1.5;
+        letter-spacing: 0.4px;
+        font-weight: 400;
+        position: sticky;
+        top: 0;
+      }
+      td .icon-btn { width: 28px; height: 28px; }
+      th button.sort {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+        padding: 0;
+      }
+      tbody tr { cursor: pointer; }
+      tbody tr:hover { background: var(--hover); }
+      .pager { color: var(--text); font-size: 12px; font-weight: 400; line-height: 1.5; letter-spacing: 0.48px; }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 7px;
+        border: 1px solid;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.25;
+        letter-spacing: 0.48px;
+        white-space: nowrap;
+      }
+      .badge-registered, .badge-accepted, .badge-scheduleAdjusting {
+        background: var(--primary-soft); color: var(--primary); border-color: var(--primary-border);
+      }
+      .badge-waitingForJudgement, .badge-waitingForBedOpen, .badge-dischargeDestinationAdjusting {
+        background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border);
+      }
+      .badge-admissionConfirmed, .badge-dischargeConfirmed { background: var(--success); color: #fff; border-color: var(--success); }
+      .badge-rejected, .badge-cancelled {
+        background: var(--bg-sub); color: var(--sub); border-color: var(--border-bold);
+      }
+
+      .scrim {
+        position: fixed;
+        inset: 0;
+        background: var(--scrim);
+        z-index: 30;
+      }
+      .scrim[hidden], .side[hidden], .modal[hidden] { display: none; }
+      .side {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: min(704px, 100%);
+        background: #fff;
+        z-index: 40;
+        display: flex;
+        flex-direction: column;
+        box-shadow: -8px 0 24px rgba(8, 21, 26, 0.12);
+      }
+      .side header, .modal header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .side header h2, .modal header h2 { margin: 0; font-size: 18px; }
+      .side .body, .modal .body { padding: 20px; overflow: auto; flex: 1; min-height: 0; }
+      .side footer, .modal footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 20px;
+        border-top: 1px solid var(--border-subtle);
+      }
+      .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+      .field label { font-size: 13px; font-weight: 700; }
+      .req::after { content: " *"; color: var(--danger); }
+      .inline { display: flex; gap: 16px; }
+      .modal {
+        position: fixed;
+        z-index: 50;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(560px, calc(100% - 32px));
+        max-height: calc(100vh - 48px);
+        background: #fff;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+      }
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #08151a;
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: 4px;
+        z-index: 80;
+      }
+      .toast[hidden] { display: none; }
+
+      .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 32px; }
+      .tabs button {
+        border: 0;
+        background: transparent;
+        padding: 8px 16px 10px;
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.25;
+        letter-spacing: 0.64px;
+        white-space: nowrap;
+        border-bottom: 2px solid transparent;
+      }
+      .tabs button:hover { background: var(--skeleton-hover); }
+      .tabs button.is-active {
+        color: var(--primary);
+        font-weight: 700;
+        border-bottom-color: var(--primary);
+      }
+      .tabs button.is-active:hover { background: transparent; }
+      .tabs .count { margin-left: 4px; }
+      .text-btn {
+        border: 0;
+        background: transparent;
+        color: var(--primary);
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 1.25;
+        letter-spacing: 0.56px;
+        padding: 6px 4px;
+        border-radius: 4px;
+      }
+      .text-btn:hover { text-decoration: underline; }
+      .summary {
+        position: fixed; z-index: 25; width: 300px; background: #fff; border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(8, 21, 26, 0.18); padding: 14px 16px;
+      }
+      .summary[hidden] { display: none; }
+      .summary h3 { margin: 0; font-size: 16px; }
+      .summary .meta { color: var(--sub); font-size: 13px; }
+      .summary dl { display: grid; grid-template-columns: 88px 1fr; gap: 8px 10px; margin: 12px 0; font-size: 13px; }
+      .summary dt { color: var(--sub); }
+      .summary hr { border: 0; border-top: 1px solid var(--border-subtle); margin: 8px 0; }
+      .guide-group { margin-bottom: 16px; }
+      .guide-group h3 { margin: 0 0 8px; font-size: 14px; }
+      .guide-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; align-items: center; margin: 6px 0; font-size: 13px; }
+      .form-section { margin-bottom: 28px; }
+      .form-section h3 { margin: 0 0 12px; font-size: 15px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px; }
+      .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .choices { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+      .choice { font-weight: 400; display: inline-flex; gap: 4px; align-items: center; }
+      .hint { color: var(--sub); font-size: 12px; font-weight: 400; margin: 4px 0 0; }
+      .adl { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 12px; }
+      .adl th, .adl td { border: 1px solid var(--border-subtle); padding: 6px; vertical-align: top; text-align: left; }
+      .history { font-size: 13px; color: var(--sub); }
+      #create { width: min(760px, calc(100% - 32px)); }
+
+      .dash-panel {
+        background: var(--bg);
+        border-radius: 4px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+      }
+      .dash-section { display: flex; flex-direction: column; gap: 16px; }
+      .section-title, .result-head { display: flex; align-items: center; }
+      .section-title { justify-content: space-between; }
+      .result-head { gap: 24px; }
+      .section-title h2, .result-head h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.25;
+        letter-spacing: 0.64px;
+      }
+      .section-title span { color: var(--sub); font-size: 14px; line-height: 1.5; letter-spacing: 0.56px; }
+      .month-picker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--bg);
+        font-size: 14px;
+        line-height: 1.5;
+        letter-spacing: 0.56px;
+      }
+      .cards { display: flex; flex-wrap: wrap; gap: 24px; }
+      .card {
+        min-width: 180px;
+        flex: 1;
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 16px 24px;
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .card .k { font-size: 14px; font-weight: 700; line-height: 1.25; letter-spacing: 0.56px; }
+      .card.secondary .k, .card.secondary .n, .card.secondary .unit { color: var(--sub); }
+      .card .stats { display: flex; align-items: baseline; justify-content: flex-end; gap: 8px; }
+      .card .cmp { display: flex; align-items: baseline; gap: 4px; color: var(--sub); font-size: 12px; line-height: 1.5; letter-spacing: 0.48px; }
+      .card .n { font-size: 24px; font-weight: 700; line-height: 1.25; letter-spacing: 0.96px; }
+      .card .unit { font-size: 12px; line-height: 1.5; }
+      .chart-card {
+        background: var(--bg);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 16px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .chart-head { display: flex; align-items: center; gap: 16px; }
+      .chart-card h3 { margin: 0; font-size: 14px; font-weight: 600; }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px 16px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 12px;
+        color: var(--sub);
+      }
+      .legend li { display: flex; align-items: center; gap: 4px; }
+      .swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+      .swatch.reg { background: var(--primary); }
+      .swatch.conf { background: var(--success); }
+      .swatch.rate { background: var(--sub); border-radius: 99px; }
+      .vbars { display: flex; align-items: flex-end; gap: 16px; min-height: 180px; }
+      .vbar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+      .vbar-pair { display: flex; align-items: flex-end; justify-content: center; gap: 4px; height: 140px; width: 100%; }
+      .vbar-pair i { display: block; width: 18px; border-radius: 2px 2px 0 0; }
+      .vbar-pair i.reg { background: var(--primary); }
+      .vbar-pair i.conf { background: var(--success); }
+      .vbar-col .name { font-size: 12px; color: var(--sub); text-align: center; }
+      .hbars { display: flex; flex-direction: column; gap: 12px; }
+      .hbar-row { display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: center; }
+      .hbar-row .name { font-size: 12px; color: var(--sub); }
+      .hbar-pair { display: flex; flex-direction: column; gap: 4px; }
+      .hbar-pair i { display: block; height: 12px; border-radius: 2px; }
+      .hbar-pair i.reg { background: var(--primary); }
+      .hbar-pair i.conf { background: var(--success); }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="nav" id="nav">
+        <div class="nav-head">
+          <div class="logo">
+            <img
+              src="https://storage.googleapis.com/acute-care-flow-web-public/logo.svg"
+              alt="foro入退院"
+              onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'foro入退院'}))"
+            />
+          </div>
+          <button class="icon-btn" id="nav-toggle" type="button" aria-label="メニュー">☰</button>
+        </div>
+        <a href="#list" data-page="list" class="is-active"><span>相談一覧</span></a>
+        <a href="#dashboard" data-page="dashboard"><span>ダッシュボード</span></a>
+      </aside>
+      <div class="workspace">
+        <header class="header">
+          <h1 id="title">相談一覧</h1>
+          <div class="account">
+            <button class="icon-btn" id="account-btn" type="button" aria-label="アカウント">👤</button>
+            <div class="popover" id="account-menu" hidden>
+              <div class="who">青葉 花</div>
+              <button type="button" data-toast="個人設定は現行のままです">個人設定</button>
+              <button type="button" data-toast="ユーザー管理は現行のままです">ユーザー管理</button>
+              <button type="button" data-toast="ログアウトはモックでは動きません">ログアウト</button>
+            </div>
+          </div>
+        </header>
+        <main class="main">
+          <p class="delta-note" id="delta-note" hidden>黄色の枠が、今回足したところです。</p>
+
+          <section id="page-list">
+            <div class="tabs" id="tabs"></div>
+            <div class="toolbar">
+              <div class="filters">
+                <div class="search">
+                  <input id="search" type="search" placeholder="管理番号、患者ID、氏名、疾患、紹介元医療機関" />
+                  <span class="suffix">⌕</span>
+                </div>
+                <div class="chip-wrap">
+                  <button class="chip" id="status-chip" type="button">ステータス</button>
+                  <div class="popover check-list" id="status-menu" hidden></div>
+                </div>
+                <div class="chip-wrap">
+                  <button class="chip" id="waiting-chip" type="button">連絡待ち</button>
+                  <div class="popover check-list" id="waiting-menu" hidden></div>
+                </div>
+                <button class="text-btn" id="guide-open" type="button">ステータスについて</button>
+              </div>
+              <div class="actions">
+                <div class="actions-row">
+                  <button class="btn btn-primary" id="create-open" type="button">新規登録</button>
+                  <div class="menu">
+                    <button class="icon-btn" id="more-btn" type="button" aria-label="その他">⋮</button>
+                    <div class="popover" id="more-menu" hidden>
+                      <button type="button" id="csv">CSVダウンロード</button>
+                      <button type="button" data-settings="institutions">紹介元医療機関の設定</button>
+                      <button type="button" data-settings="diseases">疾患の設定</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="pager" id="pager"></div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead id="thead"></thead>
+                <tbody id="tbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="page-dashboard" hidden>
+            <div class="dash-panel">
+              <section class="dash-section">
+                <div class="section-title">
+                  <h2>進行中の相談案件</h2>
+                  <span id="dash-time"></span>
+                </div>
+                <div class="cards" id="ongoing-cards"></div>
+              </section>
+              <section class="dash-section">
+                <div class="result-head">
+                  <h2>相談実績</h2>
+                  <div class="month-picker">2026年9月</div>
+                </div>
+                <div class="cards" id="result-cards"></div>
+                <div class="chart-card">
+                  <div class="chart-head">
+                    <h3>疾患別入院実績</h3>
+                    <button class="chip" type="button">紹介元医療機関</button>
+                  </div>
+                  <div class="vbars" id="disease-bars"></div>
+                  <ul class="legend">
+                    <li><i class="swatch reg"></i>新規受付</li>
+                    <li><i class="swatch conf"></i>入院確定</li>
+                    <li><i class="swatch rate"></i>入院確定率</li>
+                  </ul>
+                </div>
+                <div class="chart-card">
+                  <h3>紹介元医療機関別入院実績</h3>
+                  <div class="hbars" id="institution-bars"></div>
+                  <ul class="legend">
+                    <li><i class="swatch reg"></i>新規受付</li>
+                    <li><i class="swatch conf"></i>入院確定</li>
+                    <li><i class="swatch rate"></i>入院確定率</li>
+                  </ul>
+                </div>
+              </section>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="scrim" id="scrim" hidden></div>
+    <aside class="side" id="side" hidden>
+      <header>
+        <h2>相談の編集</h2>
+        <button class="icon-btn" type="button" data-close="side" aria-label="閉じる">×</button>
+      </header>
+      <div class="body" id="side-body"></div>
+      <footer>
+        <button class="btn btn-danger" id="delete-open" type="button">削除</button>
+        <button class="btn btn-secondary" type="button" data-close="side">キャンセル</button>
+        <button class="btn btn-primary" id="side-save" type="button">保存</button>
+      </footer>
+    </aside>
+
+    <div class="modal" id="create" hidden>
+      <header>
+        <h2>相談の新規登録</h2>
+        <button class="icon-btn" type="button" data-close="create" aria-label="閉じる">×</button>
+      </header>
+      <div class="body" id="create-body"></div>
+      <footer>
+        <button class="btn btn-secondary" type="button" data-close="create">キャンセル</button>
+        <button class="btn btn-primary" id="create-save" type="button">登録</button>
+      </footer>
+    </div>
+
+    <div class="modal" id="settings" hidden>
+      <header>
+        <h2 id="settings-title"></h2>
+        <button class="icon-btn" type="button" data-close="settings" aria-label="閉じる">×</button>
+      </header>
+      <div class="body" id="settings-body"></div>
+      <footer>
+        <button class="btn btn-secondary" type="button" data-close="settings">閉じる</button>
+      </footer>
+    </div>
+
+    <div class="modal" id="confirm" hidden>
+      <header><h2>削除の確認</h2></header>
+      <div class="body">この相談を削除します。一覧から外れます。</div>
+      <footer>
+        <button class="btn btn-secondary" type="button" data-close="confirm">キャンセル</button>
+        <button class="btn btn-danger" id="delete-do" type="button">削除する</button>
+      </footer>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+    <div class="summary" id="summary" hidden></div>
+    <div class="modal" id="guide" hidden>
+      <header>
+        <h2>ステータスについて</h2>
+        <button class="icon-btn" type="button" data-close="guide" aria-label="閉じる">×</button>
+      </header>
+      <div class="body" id="guide-body"></div>
+      <footer>
+        <button class="btn btn-secondary" type="button" data-close="guide">閉じる</button>
+      </footer>
+    </div>
+
+    <script>
+const STATUS_GROUPS = [
+        ["ongoing", "進行中", [["registered", "新規受付", "相談を受け付け、内容をまだ確認していない状態"]]],
+        ["judgementWaiting", "判断・対応待ち", [
+          ["waitingForJudgement", "判定待ち", "入院受入の可否を院内で確認している状態"],
+          ["accepted", "受入可", "入院の受入が可能と判断された状態"],
+          ["scheduleAdjusting", "日程調整中", "患者・家族や関係者と入院日を調整している状態"],
+          ["waitingForBedOpen", "ベッド待機中", "受入可能だが、病床の確保を待っている状態"],
+          ["dischargeDestinationAdjusting", "退院先調整中", "自宅・施設・転院先など、退院後の行き先を調整している状態"],
+        ]],
+        ["confirmed", "確定・完了", [
+          ["admissionConfirmed", "入院確定", "入院日と受入予定が確定した状態"],
+          ["dischargeConfirmed", "退院確定", "退院が確定した状態"],
+        ]],
+        ["closed", "終了・対象外", [
+          ["rejected", "受入不可", "今回は受入できないと判断された状態"],
+          ["cancelled", "相談取下げ", "患者・家族または紹介元の意向により相談を終了した状態"],
+        ]],
+      ];
+      const TABS = [["all", "すべて"], ...STATUS_GROUPS.map(([key, label]) => [key, label])];
+      const STATUSES = STATUS_GROUPS.flatMap((group) => group[2]);
+      const labelOf = (pairs, key) => pairs.find((p) => p[0] === key)?.[1] ?? "-";
+      const tabStatuses = (tab) => tab === "all" ? STATUSES.map((s) => s[0]) : STATUS_GROUPS.find((g) => g[0] === tab)[2].map((s) => s[0]);
+      const WAITINGS = [
+        ["waitingForConditionStabilization", "病状安定待ち"],
+        ["consideringAdmission", "入院検討中"],
+        ["schedulingInterview", "面談日調整中"],
+      ];
+      const ADL = [["independent", "自立"], ["supervision", "見守り"], ["partialAssistance", "一部介助"], ["fullAssistance", "全介助"]];
+      const ADL_ROWS = [
+        ["adlTransfer", "起居・移乗"], ["adlPosture", "立位・座位保持"], ["adlMobility", "移動方法"],
+        ["adlDefecation", "排便"], ["adlUrination", "排尿"], ["adlEating", "食事摂取"],
+        ["adlDressing", "更衣・整容"], ["adlBathing", "入浴"],
+      ];
+
+      const masters = {
+        diseases: ["大腿骨頚部骨折", "誤嚥性肺炎", "脳梗塞", "心不全", "腰椎圧迫骨折"],
+        institutions: ["あおばクリニック", "みどり市民病院", "中央診療所"],
+      };
+
+      const esc = (value) => String(value ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+
+      function blank() {
+        return {
+          patientId: "", nameKana: "", name: "", age: "", gender: "female", disease: masters.diseases[0],
+          status: "registered", referralDate: "", institution: "", waiting: null, notes: "", memo: "",
+          consultationReceivedOn: "", receptionId: "", receptionStaffName: "", actualAdmissionOn: "",
+          wardName: "", attendingDoctorName: "", acceptanceStatus: "", birthDate: "", address: "",
+          diagnosisName: "", onsetOn: "", diseaseCategory: "", medicalHistory: "", familyDoctorName: "",
+          foodAllergy: "", drugAllergy: "", referralStaffName: "", admissionPurposes: [], selectionReasons: [],
+          medicalSupportTypes: [], paralysisSites: [], communicationStates: [], swallowingStatus: "",
+          dementiaStatus: "", nightConditions: [], mentalStates: [], motivationLevel: "", nightMentalNote: "",
+          progressReport: "", dietForms: [], excretionMethods: [], preOnsetIndependenceLevel: "",
+          preOnsetExcretionMethods: [], usedServices: "", familyStructure: "", keyPerson: "",
+          careLevel: "", hasAdmissionCooperationSheet: "", careManagerName: "", careSupportOffice: "",
+          preferredRoomType: "", preferredAdmissionOn: "", familyInterviewRequired: "",
+          receivedDocuments: [], directorApprovalStatus: "", doctorName1: "", doctorApprovalStatus1: "",
+          doctorName2: "", doctorApprovalStatus2: "", administrativeTaskTypes: [], transportMethods: [],
+          patientIntention: "", familyIntention: "", social: "", dischargeDestination: "",
+          admissionConfirmedOn: "", interview: "no", hasFile: false, updatedLabel: "たった今",
+          statusHistory: [],
+        };
+      }
+
+      let patients = [
+        Object.assign(blank(), { id: "A-1024", displayId: "A-1024", name: "佐藤 花", nameKana: "サトウ ハナ", patientId: "0000001234", age: 72, gender: "female", disease: "大腿骨頚部骨折", status: "waitingForJudgement", referralDate: "2026-10-10", institution: "あおばクリニック", waiting: "consideringAdmission", notes: "紹介状を確認中", memo: "独居。キーパーソンは長女", updatedLabel: "2時間前", consultationReceivedOn: "2026-10-10", preferredAdmissionOn: "2026-10-20" }),
+        Object.assign(blank(), { id: "A-1025", displayId: "A-1025", name: "高橋 誠", patientId: "0000001188", age: 81, gender: "male", disease: "誤嚥性肺炎", status: "waitingForBedOpen", referralDate: "2026-10-08", institution: "みどり市民病院", hasFile: true, updatedLabel: "1日前", memo: "吸引あり" }),
+        Object.assign(blank(), { id: "A-1019", displayId: "A-1019", name: "伊藤 真由", patientId: "0000001102", age: 68, gender: "female", disease: "脳梗塞", status: "scheduleAdjusting", referralDate: "2026-10-06", institution: "中央診療所", waiting: "schedulingInterview", updatedLabel: "3時間前" }),
+        Object.assign(blank(), { id: "A-1011", displayId: "A-1011", name: "渡辺 隆", patientId: "0000000991", age: 77, gender: "male", disease: "心不全", status: "admissionConfirmed", referralDate: "2026-09-28", institution: "あおばクリニック", hasFile: true, updatedLabel: "2026-10-09", actualAdmissionOn: "2026-10-16", admissionConfirmedOn: "2026-10-09" }),
+        Object.assign(blank(), { id: "A-1030", displayId: "A-1030", name: "木村 咲", patientId: "0000001402", age: 75, gender: "female", disease: "腰椎圧迫骨折", status: "dischargeDestinationAdjusting", referralDate: "2026-09-12", institution: "みどり市民病院", updatedLabel: "5時間前", memo: "自宅退院を希望" }),
+        Object.assign(blank(), { id: "A-1028", displayId: "A-1028", name: "斎藤 健", patientId: "0000001360", age: 80, gender: "male", disease: "脳梗塞", status: "dischargeConfirmed", referralDate: "2026-08-20", institution: "中央診療所", updatedLabel: "2026-10-11", dischargeDestination: "home" }),
+        Object.assign(blank(), { id: "A-1008", displayId: "A-1008", name: "中村 里奈", patientId: "0000000870", age: 84, gender: "female", disease: "腰椎圧迫骨折", status: "registered", referralDate: "2026-10-13", institution: "みどり市民病院", waiting: "waitingForConditionStabilization", updatedLabel: "20分前" }),
+        Object.assign(blank(), { id: "A-0994", displayId: "A-0994", name: "小林 浩", patientId: "0000000812", age: 79, gender: "male", disease: "心不全", status: "rejected", referralDate: "2026-09-20", institution: "中央診療所", updatedLabel: "2026-09-30", memo: "満床のため受入不可" }),
+      ].map((p) => Object.assign(blank(), p));
+
+      const state = { page: "list", tab: "all", statuses: [], waitings: [], showNames: false, sortBy: "displayId", sortOrder: "desc", editingId: null };
+      const $ = (id) => document.getElementById(id);
+
+      function choices(name, options, selected, kind) {
+        const picked = Array.isArray(selected) ? selected : [selected];
+        return `<div class="choices">${options.map(([value, label]) => `<label class="choice"><input type="${kind}" name="${name}" value="${value}" ${picked.includes(value) ? "checked" : ""}/> ${esc(label)}</label>`).join("")}</div>`;
+      }
+      function selectBox(name, options, selected, empty) {
+        const head = empty ? `<option value="">未選択</option>` : "";
+        return `<select name="${name}">${head}${options.map(([value, label]) => `<option value="${value}" ${selected === value ? "selected" : ""}>${esc(label)}</option>`).join("")}</select>`;
+      }
+      function textBox(name, value, placeholder) {
+        return `<input name="${name}" value="${esc(value || "")}" placeholder="${esc(placeholder || "")}"/>`;
+      }
+      function dateBox(name, value) {
+        return `<input name="${name}" type="date" value="${esc(value || "")}"/>`;
+      }
+      function field(label, control, extra) {
+        return `<div class="field" ${extra || ""}><label>${label}</label>${control}</div>`;
+      }
+      function pair(a, b) { return `<div class="pair">${a}${b}</div>`; }
+
+      function formHtml(p, mode) {
+        const statusOptions = STATUS_GROUPS.map(([, group, items]) => `<optgroup label="${group}">${items.map(([value, label]) => `<option value="${value}" ${p.status === value ? "selected" : ""}>${label}</option>`).join("")}</optgroup>`).join("");
+        const diseases = masters.diseases.map((name) => [name, name]);
+        const institutions = masters.institutions.map((name) => [name, name]);
+        const adl = `<table class="adl"><thead><tr><th>項目</th><th>発症前</th><th>現在</th></tr></thead><tbody>${ADL_ROWS.map(([key, label]) => `<tr><th>${label}</th><td>${choices(key + "Before", ADL, p[key + "Before"], "radio")}</td><td>${choices(key + "Current", ADL, p[key + "Current"], "radio")}</td></tr>`).join("")}</tbody></table>`;
+        const history = mode === "edit" ? `<div class="form-section"><h3>ステータス履歴</h3><div class="history">${(p.statusHistory || []).length ? p.statusHistory.map((h) => `${labelOf(STATUSES, h.status)} ${h.at}`).join("<br/>") : "履歴なし"}</div></div>` : "";
+        const displayId = mode === "edit" ? field("管理番号", `<div>${esc(p.displayId)}</div>`) : field("管理番号", "<div>（登録時に採番）</div>");
+        return `
+          ${field("ステータス", `<select name="status">${statusOptions}</select>`)}
+          <label class="choice"><input type="checkbox" name="isWaitingForContact" ${p.waiting ? "checked" : ""}/> 連絡待ちにする</label>
+          <div data-when="waiting" ${p.waiting ? "" : "hidden"}>${field("連絡待ちの理由", selectBox("waiting", WAITINGS, p.waiting, true))}</div>
+          <div data-when="admission" ${p.status === "admissionConfirmed" ? "" : "hidden"}>${field("入院確定日", dateBox("admissionConfirmedOn", p.admissionConfirmedOn))}</div>
+          <div class="form-section"><h3>基本情報</h3>
+            ${pair(field("相談受付日", dateBox("consultationReceivedOn", p.consultationReceivedOn)), field("受付ID", textBox("receptionId", p.receptionId)))}
+            ${pair(field("担当者名", textBox("receptionStaffName", p.receptionStaffName)), field("入院日", dateBox("actualAdmissionOn", p.actualAdmissionOn)))}
+            ${pair(field("病棟名", textBox("wardName", p.wardName)), field("主治医名", textBox("attendingDoctorName", p.attendingDoctorName)))}
+            ${field("受入可否", choices("acceptanceStatus", [["acceptable", "可"], ["notAcceptable", "不可"], ["considering", "検討中"]], p.acceptanceStatus, "radio"))}
+            ${pair(displayId, field("患者ID", textBox("patientId", p.patientId, "0000001234")))}
+            ${field("紹介状受領日", dateBox("referralDate", p.referralDate))}
+          </div>
+          <div class="form-section"><h3>1. 紹介情報</h3>
+            ${pair(field("紹介元医療機関", selectBox("institution", institutions, p.institution, true)), field("紹介元担当者", textBox("referralStaffName", p.referralStaffName)))}
+            ${field("入院・紹介目的", choices("admissionPurposes", [["rehabilitation", "リハビリ"], ["continuedTreatment", "治療継続"], ["dischargeDestinationAdjustment", "転帰先調整"], ["palliativeCare", "緩和"], ["longTermCare", "療養"], ["respite", "レスパイト"], ["endOfLifeCare", "看取り"], ["emergency", "緊急"], ["other", "その他"]], p.admissionPurposes, "checkbox"))}
+            ${field("選択理由", choices("selectionReasons", [["nearHome", "自宅から近い"], ["reputation", "評判を聞いて"], ["acquaintanceRecommendation", "知人からの推薦"], ["soleConsultation", "単独相談"], ["parallelConsultation", "他院並行"], ["other", "その他"]], p.selectionReasons, "checkbox"))}
+          </div>
+          <div class="form-section"><h3>2. 患者情報</h3>
+            ${pair(field("氏名（カナ）", textBox("nameKana", p.nameKana)), field("氏名（漢字） *", textBox("name", p.name, "メダップ 太郎")))}
+            ${pair(field("生年月日", dateBox("birthDate", p.birthDate)), field("年齢 *", `<input name="age" type="number" min="0" max="130" value="${esc(p.age)}"/>`))}
+            ${field("性別 *", choices("gender", [["male", "男"], ["female", "女"]], p.gender, "radio"))}
+            ${field("住所", textBox("address", p.address))}
+            ${field("主病名 *", selectBox("disease", diseases, p.disease, false))}
+            ${pair(field("診断名（補足）", textBox("diagnosisName", p.diagnosisName)), field("発症日", dateBox("onsetOn", p.onsetOn)))}
+            ${field("疾患カテゴリー（入院タイミング管理用）", choices("diseaseCategory", [["orthopedics", "整形外科"], ["cerebrovascular", "脳血管疾患"], ["disuseSyndrome", "廃用症候群"], ["spinalCordInjury", "脊髄損傷"], ["other", "その他"]], p.diseaseCategory, "radio"))}
+            <p class="hint">整形外科は入院日の遅延が FIM 利得に大きく影響するため特に注意</p>
+            ${pair(field("既往歴", textBox("medicalHistory", p.medicalHistory)), field("かかりつけ医", textBox("familyDoctorName", p.familyDoctorName)))}
+            ${pair(field("アレルギー（食物）", textBox("foodAllergy", p.foodAllergy)), field("アレルギー（薬剤）", textBox("drugAllergy", p.drugAllergy)))}
+          </div>
+          <div class="form-section"><h3>3. 経過報告・医療状況</h3>
+            ${field("経過報告（MMT・Brunnstrom・評価・現病歴 等）", `<textarea name="progressReport" rows="3">${esc(p.progressReport)}</textarea>`)}
+            ${field("医療状況", choices("medicalSupportTypes", [["intravenousDrip", "点滴"], ["oxygen", "酸素"], ["tracheostomy", "気切"], ["suction", "吸引"], ["tubeFeedingNasal", "経管（鼻）"], ["tubeFeedingGastric", "経管（胃）"], ["insulin", "インスリン"], ["dialysis", "透析"], ["ventilator", "人工呼吸器（NPPV含）"], ["urinaryCatheter", "バルーン"], ["pressureUlcer", "褥瘡"]], p.medicalSupportTypes, "checkbox"))}
+            ${field("麻痺", choices("paralysisSites", [["none", "なし"], ["rightUpperLimb", "右上肢"], ["rightLowerLimb", "右下肢"], ["leftUpperLimb", "左上肢"], ["leftLowerLimb", "左下肢"]], p.paralysisSites, "checkbox"))}
+            ${field("コミュニケーション", choices("communicationStates", [["good", "良"], ["dysarthria", "構音"], ["aphasia", "失語"]], p.communicationStates, "checkbox"))}
+            ${field("嚥下", choices("swallowingStatus", [["ableWithoutChoking", "可（ムセなし）"], ["ableWithChoking", "可（ムセあり）"], ["unable", "不可"]], p.swallowingStatus, "radio"))}
+            ${field("認知症", choices("dementiaStatus", [["none", "なし"], ["withoutProblematicBehavior", "あり（問題行動なし）"], ["withProblematicBehavior", "あり（問題行動あり）"]], p.dementiaStatus, "radio"))}
+            ${field("夜間の状態", choices("nightConditions", [["goodSleep", "良眠"], ["insomnia", "不眠"], ["nightWaking", "中途覚醒"], ["dayNightReversal", "昼夜逆転"], ["nightDelirium", "夜間せん妄"], ["nightWandering", "夜間徘徊"], ["fallRisk", "転倒リスク"], ["sleepingPillUse", "睡眠薬使用"]], p.nightConditions, "checkbox"))}
+            <p class="hint">夜間の状態・精神面は FIM 予測精度に重要な項目です。可能な限り記入してください。</p>
+            ${field("精神面・情緒", choices("mentalStates", [["stable", "安定"], ["anxiety", "不安"], ["depressiveTendency", "抑うつ傾向"], ["decreasedMotivation", "意欲低下"], ["restlessness", "不穏"], ["irritability", "易怒性"], ["rehabilitationRefusalHistory", "リハ拒否歴"]], p.mentalStates, "checkbox"))}
+            ${field("意欲・参加意識", choices("motivationLevel", [["high", "高い"], ["normal", "普通"], ["low", "低い"], ["fluctuating", "変動あり"]], p.motivationLevel, "radio"))}
+            ${field("夜間・精神面 補足", `<textarea name="nightMentalNote" rows="2">${esc(p.nightMentalNote)}</textarea>`)}
+          </div>
+          <div class="form-section"><h3>4. ADL（日常生活動作）</h3>${adl}
+            ${field("食事形態", choices("dietForms", [["rice", "ご飯"], ["porridge", "お粥"], ["regularDiet", "常食"], ["choppedDiet", "キザミ"], ["blendedDiet", "ミキサー"], ["softDiet", "軟菜"], ["thickened", "トロミ"]], p.dietForms, "checkbox"))}
+            ${field("排泄方法", choices("excretionMethods", [["toilet", "トイレ"], ["portableToilet", "Pトイレ"], ["diaper", "おむつ"], ["rehabilitationPants", "リハパン"], ["urinal", "尿器"], ["urinaryCatheter", "バルーン"], ["stoma", "ストマ"], ["other", "その他"]], p.excretionMethods, "checkbox"))}
+          </div>
+          <div class="form-section"><h3>5. 発症前の生活・社会背景</h3>
+            ${field("発症前の生活", choices("preOnsetIndependenceLevel", [["independent", "自立"], ["supportLevel1", "要支援1"], ["supportLevel2", "要支援2"], ["careLevel1", "要介護1"], ["careLevel2", "要介護2"], ["careLevel3", "要介護3"], ["careLevel4", "要介護4"], ["careLevel5", "要介護5"], ["other", "その他"]], p.preOnsetIndependenceLevel, "radio"))}
+            ${field("排泄方法（発症前）", choices("preOnsetExcretionMethods", [["toilet", "トイレ"], ["portableToilet", "Pトイレ"], ["diaper", "おむつ"], ["other", "その他"]], p.preOnsetExcretionMethods, "checkbox"))}
+            ${pair(field("利用していたサービス", textBox("usedServices", p.usedServices, "デイサービス（週2）")), field("家族構成・同居者", textBox("familyStructure", p.familyStructure, "妻・長男同居")))}
+            ${field("キーパーソン（続柄/連絡先）", textBox("keyPerson", p.keyPerson, "長男 090-xxxx-xxxx"))}
+          </div>
+          <div class="form-section"><h3>6. 介護・保険情報</h3>
+            ${field("介護認定", choices("careLevel", [["notApplied", "未申請"], ["supportLevel1", "要支援1"], ["supportLevel2", "要支援2"], ["careLevel1", "要介護1"], ["careLevel2", "要介護2"], ["careLevel3", "要介護3"], ["careLevel4", "要介護4"], ["careLevel5", "要介護5"]], p.careLevel, "radio"))}
+            ${field("入院時連携シート", choices("hasAdmissionCooperationSheet", [["yes", "有"], ["no", "無"]], p.hasAdmissionCooperationSheet, "radio"))}
+            ${pair(field("ケアマネ", textBox("careManagerName", p.careManagerName)), field("居宅介護支援事業所", textBox("careSupportOffice", p.careSupportOffice)))}
+          </div>
+          <div class="form-section"><h3>7. 本人・家族の意向／希望</h3>
+            ${pair(field("希望部屋", choices("preferredRoomType", [["privateRoom", "個室"], ["semiPrivateRoom", "2人部屋"], ["wardRoom", "多床室"]], p.preferredRoomType, "radio")), field("入院希望日", dateBox("preferredAdmissionOn", p.preferredAdmissionOn)))}
+            ${field("家族面談", choices("familyInterviewRequired", [["yes", "あり"], ["no", "なし"]], p.familyInterviewRequired, "radio"))}
+            ${field("希望日との誤差", `<div data-diff>${diffLabel(p.preferredAdmissionOn, p.actualAdmissionOn)}</div>`)}
+          </div>
+          <div class="form-section"><h3>8. 院内確認・決裁</h3>
+            ${field("受領書類", choices("receivedDocuments", [["medicalInformationLetter", "診療情報提供書"], ["nursingSummary", "看護サマリー"], ["testData", "検査データ"], ["medicationInformation", "内服情報"], ["profileEntry", "プロファイル入力"], ["scan", "スキャン"]], p.receivedDocuments, "checkbox"))}
+            ${field("医師確認", choices("directorApprovalStatus", [["approved", "院長：可"], ["rejected", "院長：不可"]], p.directorApprovalStatus, "radio"))}
+            ${field("Dr名（1 人目）", textBox("doctorName1", p.doctorName1))}
+            ${field("Dr名（1 人目）の可否", choices("doctorApprovalStatus1", [["approved", "可"], ["rejected", "不可"]], p.doctorApprovalStatus1, "radio"))}
+            ${field("Dr名（2 人目）", textBox("doctorName2", p.doctorName2))}
+            ${field("Dr名（2 人目）の可否", choices("doctorApprovalStatus2", [["approved", "可"], ["rejected", "不可"]], p.doctorApprovalStatus2, "radio"))}
+            ${field("業務チェック", choices("administrativeTaskTypes", [["acceptanceReply", "受入返答"], ["contactReferrer", "紹介元へ連絡"], ["admissionScheduleRegistration", "入院予定登録"], ["medicalRecordEntry", "カルテ入力"], ["medicationCheckRequest", "薬剤確認依頼"], ["taskMemo", "業務メモ"]], p.administrativeTaskTypes, "checkbox"))}
+            ${field("送迎手段", choices("transportMethods", [["notRequiredFamilyTransport", "不要（家族送迎）"], ["hospitalVehicle", "病院車"], ["ambulance", "救急車"], ["welfareTaxi", "福祉タクシー"], ["liaisonVehicle", "地連車"], ["other", "その他"]], p.transportMethods, "checkbox"))}
+          </div>
+          <div class="form-section"><h3>9. 特記事項</h3>
+            ${field("特記事項（酸素流量・吸引回数・褥瘡・安全対策・禁忌肢位 等）", `<textarea name="notes" rows="4">${esc(p.notes)}</textarea>`)}
+          </div>
+          <div class="form-section"><h3>10. ソーシャル情報</h3>
+            ${field("本人の意向", textBox("patientIntention", p.patientIntention))}
+            ${field("家族の意向", textBox("familyIntention", p.familyIntention))}
+            ${field("ソーシャル情報", textBox("social", p.social, "対応上の留意点、配慮事項など"))}
+          </div>
+          <div class="form-section"><h3>転帰先</h3>
+            ${field("転帰先", choices("dischargeDestination", [["home", "自宅"], ["facility", "施設"], ["hospitalTransfer", "転院"], ["other", "その他"]], p.dischargeDestination, "radio"))}
+          </div>
+          ${history}
+        `;
+      }
+
+      function diffLabel(preferred, actual) {
+        if (!preferred || !actual) return "—";
+        const diff = Math.round((new Date(actual) - new Date(preferred)) / 86400000);
+        return diff === 0 ? "±0日" : `${diff > 0 ? "+" : ""}${diff}日`;
+      }
+
+      function readForm(root) {
+        const next = {};
+        const names = new Set([...root.querySelectorAll("[name]")].map((el) => el.name));
+        names.forEach((name) => {
+          const nodes = [...root.querySelectorAll(`[name="${name}"]`)];
+          const el = nodes[0];
+          if (el.type === "radio") next[name] = nodes.find((node) => node.checked)?.value || "";
+          else if (el.type === "checkbox" && nodes.length > 1) next[name] = nodes.filter((node) => node.checked).map((node) => node.value);
+          else if (el.type === "checkbox") next[name] = el.checked;
+          else next[name] = el.value;
+        });
+        next.waiting = next.isWaitingForContact ? next.waiting || null : null;
+        next.age = next.age === "" ? "" : Number(next.age);
+        return next;
+      }
+
+      function syncForm(root) {
+        const waiting = root.querySelector('[name="isWaitingForContact"]')?.checked;
+        const status = root.querySelector('[name="status"]')?.value;
+        const waitingBox = root.querySelector('[data-when="waiting"]');
+        const admissionBox = root.querySelector('[data-when="admission"]');
+        if (waitingBox) waitingBox.hidden = !waiting;
+        if (admissionBox) admissionBox.hidden = status !== "admissionConfirmed";
+        const diff = root.querySelector("[data-diff]");
+        if (diff) diff.textContent = diffLabel(root.querySelector('[name="preferredAdmissionOn"]')?.value, root.querySelector('[name="actualAdmissionOn"]')?.value);
+      }
+
+      function visiblePatients() {
+        const q = $("search").value.trim();
+        const allowed = tabStatuses(state.tab);
+        return patients.filter((p) => {
+          if (!allowed.includes(p.status)) return false;
+          if (state.statuses.length && !state.statuses.includes(p.status)) return false;
+          if (state.waitings.length && !state.waitings.includes(p.waiting)) return false;
+          if (!q) return true;
+          return [p.displayId, p.patientId, p.name, p.nameKana, p.disease, p.institution].some((v) => String(v || "").includes(q));
+        }).sort((a, b) => String(a[state.sortBy] ?? "").localeCompare(String(b[state.sortBy] ?? ""), "ja") * (state.sortOrder === "asc" ? 1 : -1));
+      }
+
+      function renderTabs() {
+        $("tabs").innerHTML = TABS.map(([key, label]) => {
+          const count = key === "all" ? patients.length : patients.filter((p) => tabStatuses(key).includes(p.status)).length;
+          return `<button type="button" data-tab="${key}" class="${state.tab === key ? "is-active" : ""}">${label}<span class="count">${count}</span></button>`;
+        }).join("");
+      }
+
+      function renderStatusMenu() {
+        const allowed = tabStatuses(state.tab);
+        state.statuses = state.statuses.filter((status) => allowed.includes(status));
+        $("status-menu").innerHTML = STATUSES.filter(([key]) => allowed.includes(key)).map(([key, label]) => `<label><input type="checkbox" value="${key}" ${state.statuses.includes(key) ? "checked" : ""}/> ${label}</label>`).join("");
+      }
+
+      function renderTable() {
+        renderTabs();
+        renderStatusMenu();
+        const cols = [["displayId", "管理番号", true], ["name", "氏名", false], ["age", "年齢", false], ["gender", "性別", false], ["disease", "疾患", false], ["status", "ステータス", false], ["referralDate", "紹介状受領日", true], ["institution", "紹介元医療機関名", false], ["waiting", "連絡待ち", false], ["updatedLabel", "更新日時", true]];
+        $("thead").innerHTML = `<tr>${cols.map(([key, label, sortable]) => {
+          const mark = state.sortBy === key ? (state.sortOrder === "asc" ? "↑" : "↓") : sortable ? "↕" : "";
+          const eye = key === "name" ? `<button type="button" class="sort" id="eye">${state.showNames ? "👁" : "－"}</button>` : "";
+          const head = sortable ? `<button type="button" class="sort" data-sort="${key}">${label} ${mark}</button>` : label;
+          return `<th>${head}${eye}</th>`;
+        }).join("")}<th></th><th></th></tr>`;
+        const rows = visiblePatients();
+        $("tbody").innerHTML = rows.map((p) => `<tr data-id="${p.id}">
+          <td>${p.displayId}</td><td>${state.showNames ? esc(p.name) : "********"}</td><td>${p.age}</td>
+          <td>${p.gender === "male" ? "男性" : "女性"}</td><td>${esc(p.disease)}</td>
+          <td><span class="badge badge-${p.status}">${labelOf(STATUSES, p.status)}</span></td>
+          <td>${p.referralDate || "-"}</td><td>${esc(p.institution || "-")}</td>
+          <td>${p.waiting ? labelOf(WAITINGS, p.waiting) : "-"}</td><td>${p.updatedLabel}</td>
+          <td>${p.hasFile ? "📎" : ""}</td><td><button type="button" class="icon-btn" data-open="${p.id}" aria-label="詳細">›</button></td>
+        </tr>`).join("");
+        $("pager").textContent = rows.length ? `1-${rows.length}/${rows.length}` : "0件";
+        $("status-chip").textContent = state.statuses.length ? `ステータス ${state.statuses.length}` : "ステータス";
+        $("status-chip").classList.toggle("is-on", state.statuses.length > 0);
+        $("waiting-chip").textContent = state.waitings.length ? `連絡待ち ${state.waitings.length}` : "連絡待ち";
+        $("waiting-chip").classList.toggle("is-on", state.waitings.length > 0);
+      }
+
+      function summaryHtml(p) {
+        const rows = [["管理番号", p.displayId], ["疾患", p.disease || "—"], ["紹介元", p.institution || "—"], ["連絡待ち", p.waiting ? labelOf(WAITINGS, p.waiting) : "—"], ["最終更新日時", p.updatedLabel]];
+        return `<h3>${state.showNames ? esc(p.name) : "********"}</h3><div class="meta">${p.age}歳・${p.gender === "male" ? "男性" : "女性"}</div><hr/><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}<dt>退院ステータス</dt><dd><span class="badge badge-${p.status}">${labelOf(STATUSES, p.status)}</span></dd></dl><hr/><div class="meta">特記・注意</div><strong>${esc(p.memo || "—")}</strong>`;
+      }
+
+      function openSide(id) {
+        const p = patients.find((x) => x.id === id);
+        if (!p) return;
+        state.editingId = id;
+        $("summary").hidden = true;
+        $("side-body").innerHTML = formHtml(p, "edit");
+        show("side");
+      }
+      function openCreate() {
+        $("create-body").innerHTML = formHtml(blank(), "create");
+        show("create");
+      }
+      function show(name) { $("scrim").hidden = false; $(name).hidden = false; }
+      function hideAll() { ["scrim", "side", "create", "settings", "confirm", "guide"].forEach((id) => { $(id).hidden = true; }); }
+      function toast(message) {
+        const el = $("toast");
+        el.textContent = message;
+        el.hidden = false;
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => { el.hidden = true; }, 2200);
+      }
+      function renderDashboard() {
+        const diffText = (diff) => diff === 0 ? "±0件" : `${diff > 0 ? "+" : ""}${diff}件`;
+        const mark = (diff) => diff > 0 ? "▲" : diff < 0 ? "▼" : "";
+        const card = ([label, count, diff], comparison, variant) => `<div class="card ${variant}"><span class="k">${label}</span><div class="stats"><span class="cmp"><span>${mark(diff)}</span><span>${comparison}</span><span>${diffText(diff)}</span></span><span class="n">${count}</span><span class="unit">件</span></div></div>`;
+        $("ongoing-cards").innerHTML = [["新規受付", 4, 1], ["判定待ち", 6, 0], ["受入可", 3, -1], ["日程調整中", 5, 2], ["ベッド待機中", 2, 0]].map((row) => card(row, "前日比", "primary")).join("");
+        $("result-cards").innerHTML = [["入院確定", 18, 3], ["受入不可", 4, -1], ["相談取下げ", 2, 0]].map((row) => card(row, "前月比", "secondary")).join("");
+        const vbars = [["心不全", 7, 4], ["大腿骨頚部骨折", 5, 3], ["脳梗塞", 4, 2], ["誤嚥性肺炎", 2, 1]];
+        const vmax = Math.max(...vbars.map((row) => row[1]));
+        $("disease-bars").innerHTML = vbars.map(([name, registered, confirmed]) => `<div class="vbar-col"><div class="vbar-pair"><i class="reg" style="height:${Math.round((registered / vmax) * 100)}%"></i><i class="conf" style="height:${Math.round((confirmed / vmax) * 100)}%"></i></div><div class="name">${name}</div></div>`).join("");
+        const hbars = [["あおばクリニック", 8, 5], ["みどり市民病院", 6, 3], ["中央診療所", 4, 2]];
+        const hmax = Math.max(...hbars.map((row) => row[1]));
+        $("institution-bars").innerHTML = hbars.map(([name, registered, confirmed]) => `<div class="hbar-row"><div class="name">${name}</div><div class="hbar-pair"><i class="reg" style="width:${Math.round((registered / hmax) * 100)}%"></i><i class="conf" style="width:${Math.round((confirmed / hmax) * 100)}%"></i></div></div>`).join("");
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        $("dash-time").textContent = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())} 時点`;
+      }
+      function setPage(page) {
+        state.page = page;
+        $("page-list").hidden = page !== "list";
+        $("page-dashboard").hidden = page !== "dashboard";
+        $("title").textContent = page === "list" ? "相談一覧" : "ダッシュボード";
+        document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("is-active", a.dataset.page === page));
+        if (page === "dashboard") renderDashboard();
+      }
+
+      $("waiting-menu").innerHTML = WAITINGS.map(([k, l]) => `<label><input type="checkbox" value="${k}"/> ${l}</label>`).join("");
+      $("guide-body").innerHTML = STATUS_GROUPS.map(([, label, items]) => `<div class="guide-group"><h3>${label}</h3>${items.map(([key, name, desc]) => `<div class="guide-row"><span class="badge badge-${key}">${name}</span><span>${desc}</span></div>`).join("")}</div>`).join("");
+
+      $("nav-toggle").onclick = () => $("nav").classList.toggle("is-closed");
+      document.querySelectorAll(".nav a").forEach((a) => { a.onclick = (e) => { e.preventDefault(); setPage(a.dataset.page); }; });
+      $("search").oninput = renderTable;
+      $("account-btn").onclick = () => { $("account-menu").hidden = !$("account-menu").hidden; $("more-menu").hidden = true; };
+      $("more-btn").onclick = () => { $("more-menu").hidden = !$("more-menu").hidden; $("account-menu").hidden = true; };
+      $("status-chip").onclick = () => { $("status-menu").hidden = !$("status-menu").hidden; $("waiting-menu").hidden = true; };
+      $("waiting-chip").onclick = () => { $("waiting-menu").hidden = !$("waiting-menu").hidden; $("status-menu").hidden = true; };
+      $("guide-open").onclick = () => show("guide");
+      $("tabs").onclick = (e) => {
+        const btn = e.target.closest("[data-tab]");
+        if (!btn) return;
+        state.tab = btn.dataset.tab;
+        renderTable();
+      };
+      $("status-menu").onchange = () => {
+        state.statuses = [...$("status-menu").querySelectorAll("input:checked")].map((el) => el.value);
+        renderTable();
+      };
+      $("waiting-menu").onchange = () => {
+        state.waitings = [...$("waiting-menu").querySelectorAll("input:checked")].map((el) => el.value);
+        renderTable();
+      };
+      $("thead").onclick = (e) => {
+        const sort = e.target.closest("[data-sort]");
+        if (sort) {
+          state.sortOrder = state.sortBy === sort.dataset.sort && state.sortOrder === "asc" ? "desc" : "asc";
+          state.sortBy = sort.dataset.sort;
+          renderTable();
+        }
+        if (e.target.id === "eye") { state.showNames = !state.showNames; renderTable(); }
+      };
+      $("tbody").onclick = (e) => {
+        const btn = e.target.closest("[data-open]");
+        const tr = e.target.closest("tr");
+        if (btn) openSide(btn.dataset.open);
+        else if (tr) openSide(tr.dataset.id);
+      };
+      $("tbody").onmouseover = (e) => {
+        const tr = e.target.closest("tr");
+        if (!tr || !$("side").hidden) return;
+        const p = patients.find((x) => x.id === tr.dataset.id);
+        const card = $("summary");
+        card.innerHTML = summaryHtml(p);
+        const rect = tr.getBoundingClientRect();
+        card.hidden = false;
+        card.style.top = Math.min(rect.bottom + 6, window.innerHeight - card.offsetHeight - 8) + "px";
+        card.style.left = Math.min(rect.left + 120, window.innerWidth - 320) + "px";
+      };
+      $("tbody").onmouseleave = (e) => { if (!e.relatedTarget || !e.relatedTarget.closest?.("#summary")) $("summary").hidden = true; };
+      $("create-open").onclick = openCreate;
+      $("csv").onclick = () => { $("more-menu").hidden = true; toast("表示中の相談をCSVにしました（モック）"); };
+      document.querySelectorAll("[data-settings]").forEach((btn) => {
+        btn.onclick = () => {
+          $("more-menu").hidden = true;
+          const key = btn.dataset.settings;
+          $("settings-title").textContent = key === "diseases" ? "疾患の設定" : "紹介元医療機関の設定";
+          const list = key === "diseases" ? masters.diseases : masters.institutions;
+          $("settings-body").innerHTML = `<ul>${list.map((name) => `<li>${name}</li>`).join("")}</ul><p class="hint">正式名の編集と並び替えは、このモックでは一覧だけにしています。</p>`;
+          show("settings");
+        };
+      });
+      document.querySelectorAll("[data-close]").forEach((btn) => {
+        btn.onclick = () => {
+          $(btn.dataset.close).hidden = true;
+          if (![...document.querySelectorAll(".side, .modal")].some((el) => !el.hidden)) $("scrim").hidden = true;
+        };
+      });
+      $("scrim").onclick = hideAll;
+      $("side-save").onclick = () => {
+        const next = readForm($("side-body"));
+        if (!next.name) return toast("氏名を入力してください");
+        const current = patients.find((x) => x.id === state.editingId);
+        if (current.status !== next.status) current.statusHistory = [{ status: next.status, at: "たった今" }, ...(current.statusHistory || [])];
+        Object.assign(current, next, { updatedLabel: "たった今" });
+        hideAll();
+        renderTable();
+        toast("保存しました");
+      };
+      $("create-save").onclick = () => {
+        const next = readForm($("create-body"));
+        if (!next.name) return toast("氏名を入力してください");
+        const n = 1100 + patients.length;
+        patients.unshift(Object.assign(blank(), next, { id: `A-${n}`, displayId: `A-${n}`, updatedLabel: "たった今" }));
+        hideAll();
+        renderTable();
+        toast("登録しました");
+      };
+      $("delete-open").onclick = () => show("confirm");
+      $("delete-do").onclick = () => {
+        patients = patients.filter((p) => p.id !== state.editingId);
+        hideAll();
+        renderTable();
+        toast("削除しました");
+      };
+      document.querySelectorAll("[data-toast]").forEach((btn) => { btn.onclick = () => { $("account-menu").hidden = true; toast(btn.dataset.toast); }; });
+      document.body.addEventListener("change", (e) => {
+        const root = e.target.closest("#side-body, #create-body");
+        if (root) syncForm(root);
+      });
+
+      renderTable();
+      renderDashboard();
+
+    </script>
+  </body>
+</html>

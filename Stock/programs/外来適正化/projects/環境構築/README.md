@@ -13,5 +13,6 @@ TBD
 - TBD
 
 ## 手順
-- [次回の抽出手順](documents/4_executing/20260925_次回抽出手順.md)（環境構築完了後。済生会熊本の月次実行）
+- [済生会熊本の月次抽出](documents/4_executing/20260925_次回抽出手順.md)
+- [新東京の月次抽出](documents/4_executing/新東京_月次抽出手順.md)
 - [データ抽出のローカル環境構築](documents/4_executing/20260925_ローカル環境構築手順.md)（出典は Notion の月次作業手順。Notion は未変更）

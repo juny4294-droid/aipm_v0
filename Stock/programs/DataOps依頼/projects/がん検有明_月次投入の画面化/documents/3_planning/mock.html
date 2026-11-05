@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>foro Core Admin — 入院データインポート（復号の選択）</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #1a365d;
+        --text: #1a202c;
+        --sub-text: #8b8699;
+        --border: #718096;
+        --background: #f9f9fa;
+        --white: #ffffff;
+        --disable: #e3e3e3;
+        --elevation1: 0 1px 4px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.12);
+        --modal-backdrop: rgba(26, 32, 44, 0.45);
+        --radius: 4px;
+        --font: "Noto Sans JP", "Hiragino Kaku Gothic Pro", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: var(--font);
+        font-size: 16px;
+        font-weight: 300;
+        line-height: 1.5;
+        color: var(--text);
+        background: var(--background);
+      }
+
+      button, input { font-family: inherit; }
+
+      .mock-bar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 8px 16px;
+        background: #fff8e6;
+        border-bottom: 1px solid #e6d3a1;
+        font-size: 14px;
+      }
+
+      .mock-bar strong { font-weight: 600; }
+
+      .global-header {
+        height: 68px;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px 0 0;
+      }
+
+      .global-header__menu {
+        border: 0;
+        background: transparent;
+        color: var(--white);
+        font-size: 24px;
+        font-weight: 600;
+        padding: 10px 16px;
+      }
+
+      .global-header__logout {
+        border: 0;
+        background: transparent;
+        color: var(--white);
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .main { padding: 16px 24px 40px; }
+
+      .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+
+      .page-header__left {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+
+      .page-title { margin: 0; font-size: 24px; font-weight: 600; }
+      .page-plan { font-size: 20px; font-weight: 600; }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        min-width: 160px;
+        padding: 8px 16px;
+        border-radius: var(--radius);
+        border: 1px solid transparent;
+        font-size: 16px;
+        font-weight: 300;
+        cursor: pointer;
+        box-shadow: var(--elevation1);
+      }
+
+      .btn:hover:not(:disabled) { opacity: 0.7; }
+      .btn--primary { color: var(--white); background: var(--primary); border-color: var(--primary); }
+      .btn--basic { color: var(--text); background: var(--white); border-color: var(--border); }
+      .btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+      .tab-bar {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 16px;
+        overflow-x: auto;
+      }
+
+      .tab-bar__item {
+        border: 0;
+        background: transparent;
+        padding: 8px 16px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--sub-text);
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        white-space: nowrap;
+      }
+
+      .tab-bar__item.is-current { color: var(--text); border-bottom-color: var(--primary); }
+
+      .action-bar { display: flex; gap: 16px; margin-bottom: 16px; }
+
+      .table-section { width: 100%; overflow-x: auto; }
+
+      .data-table {
+        width: 1520px;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: var(--white);
+        box-shadow: var(--elevation1);
+      }
+
+      .data-table thead tr { height: 40px; background: var(--primary); }
+      .data-table th {
+        padding: 0 8px;
+        color: var(--white);
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+      }
+      .data-table th + th, .data-table td + td { border-left: 1px solid var(--border); }
+      .data-table tbody tr { height: 64px; }
+      .data-table tbody tr + tr { border-top: 1px solid var(--border); }
+      .data-table td {
+        padding: 0 8px;
+        font-size: 14px;
+        text-align: center;
+        vertical-align: middle;
+      }
+      .data-table td.text-left { text-align: left; word-break: break-all; }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: var(--modal-backdrop);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        z-index: 10;
+      }
+
+      .modal-backdrop.is-open { display: flex; }
+
+      .modal {
+        width: 100%;
+        max-width: 520px;
+        background: var(--white);
+        border-radius: var(--radius);
+        box-shadow: var(--elevation1);
+      }
+
+      .modal__head, .modal__body, .modal__foot { padding: 16px; }
+      .modal__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--disable);
+      }
+      .modal__head h2 { margin: 0; font-size: 20px; font-weight: 600; }
+      .modal__close {
+        border: 0;
+        background: transparent;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--sub-text);
+      }
+      .modal__foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        border-top: 1px solid var(--disable);
+      }
+      .modal__foot .btn { min-width: 120px; }
+
+      .form-field { margin-bottom: 16px; }
+      .form-label { display: block; font-weight: 600; margin-bottom: 8px; }
+      .form-label__required { color: #d31c4a; margin-left: 4px; }
+      .file-row { display: flex; align-items: center; gap: 12px; }
+.file-row[hidden],
+#decrypt-field[hidden] { display: none; }
+      .file-name { font-size: 14px; word-break: break-all; }
+      .file-clear {
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        color: var(--sub-text);
+        font-size: 18px;
+      }
+
+      .choice {
+        display: flex;
+        gap: 24px;
+        padding: 8px 0;
+      }
+      .choice label { display: flex; align-items: center; gap: 8px; font-weight: 300; cursor: pointer; }
+      .choice-note { margin: 0; font-size: 13px; color: var(--sub-text); }
+    </style>
+  </head>
+  <body>
+    <div class="mock-bar">
+      <strong>モック確認用</strong>
+      <label>
+        <input type="checkbox" id="has-rule" checked />
+        このテナントに復号ルールがある（有明）
+      </label>
+    </div>
+
+    <header class="global-header">
+      <div class="global-header__menu">foro Core Admin</div>
+      <button type="button" class="global-header__logout">ログアウト</button>
+    </header>
+
+    <main class="main">
+      <header class="page-header">
+        <div class="page-header__left">
+          <h1 class="page-title">jfcr-ariake</h1>
+          <span class="page-plan">(プラン: standard202211)</span>
+        </div>
+        <button type="button" class="btn btn--basic">テナント編集</button>
+      </header>
+
+      <nav class="tab-bar" aria-label="テナント詳細タブ">
+        <button type="button" class="tab-bar__item">アカウント</button>
+        <button type="button" class="tab-bar__item">紹介</button>
+        <button type="button" class="tab-bar__item">逆紹介</button>
+        <button type="button" class="tab-bar__item is-current">入院</button>
+        <button type="button" class="tab-bar__item">外来EF</button>
+        <button type="button" class="tab-bar__item">診療科</button>
+        <button type="button" class="tab-bar__item">診療科グループ</button>
+        <button type="button" class="tab-bar__item">施設タイプデフォルト</button>
+        <button type="button" class="tab-bar__item">連携先セグメント</button>
+        <button type="button" class="tab-bar__item">競合先</button>
+        <button type="button" class="tab-bar__item">レポートインポート</button>
+        <button type="button" class="tab-bar__item">IPアドレス制限</button>
+        <button type="button" class="tab-bar__item">通知メール</button>
+      </nav>
+
+      <div class="action-bar">
+        <button type="button" class="btn btn--basic" id="btn-setup">初期設定</button>
+        <button type="button" class="btn btn--primary" id="btn-import">インポート</button>
+      </div>
+
+      <div class="table-section">
+        <table class="data-table" aria-label="インポート履歴">
+          <thead>
+            <tr>
+              <th style="width: 120px">ID</th>
+              <th style="width: 360px">様式1ファイル</th>
+              <th style="width: 360px">Dファイル</th>
+              <th style="width: 120px">レコード数</th>
+              <th style="width: 120px">入院紹介数</th>
+              <th style="width: 120px">dpcコード数</th>
+              <th style="width: 160px">投入日</th>
+              <th style="width: 160px">投入者</th>
+            </tr>
+          </thead>
+          <tbody id="log-body"></tbody>
+        </table>
+      </div>
+    </main>
+
+    <div class="modal-backdrop" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-title">
+      <div class="modal">
+        <div class="modal__head">
+          <h2 id="import-title">入院データインポート</h2>
+          <button type="button" class="modal__close" id="modal-close" aria-label="閉じる">×</button>
+        </div>
+        <div class="modal__body">
+          <div class="form-field" id="decrypt-field">
+            <span class="form-label">患者番号</span>
+            <div class="choice">
+              <label><input type="radio" name="decrypt" value="yes" checked /> 復号する</label>
+              <label><input type="radio" name="decrypt" value="no" /> しない</label>
+            </div>
+            <p class="choice-note">様式1とDファイルの両方に、この選択を適用します。初期値は「復号する」です。</p>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="ff1-input">様式1ファイル<span class="form-label__required">*</span></label>
+            <div class="file-row" id="ff1-empty">
+              <button type="button" class="btn btn--basic" id="ff1-pick">ファイルを選択する</button>
+              <input id="ff1-input" type="file" accept=".csv,.txt,.xlsx,.xls" hidden />
+            </div>
+            <div class="file-row" id="ff1-chosen" hidden>
+              <span class="file-name" id="ff1-name"></span>
+              <button type="button" class="file-clear" id="ff1-clear" aria-label="様式1を外す">×</button>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="d-input">Dファイル</label>
+            <div class="file-row" id="d-empty">
+              <button type="button" class="btn btn--basic" id="d-pick">ファイルを選択する</button>
+              <input id="d-input" type="file" accept=".csv,.txt,.xlsx,.xls" hidden />
+            </div>
+            <div class="file-row" id="d-chosen" hidden>
+              <span class="file-name" id="d-name"></span>
+              <button type="button" class="file-clear" id="d-clear" aria-label="Dファイルを外す">×</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal__foot">
+          <button type="button" class="btn btn--basic" id="btn-cancel">キャンセル</button>
+          <button type="button" class="btn btn--primary" id="btn-upload" disabled>アップロード</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var logs = [
+          ["……2609", "FF1_130870923_2609_patient_number_fixed.txt", "Dn_130870923_2609_patient_number_fixed.txt", "1468件", "1044件", "1290件", "2026/10/23", "山田"],
+          ["……2608", "FF1_130870923_2608_patient_number_fixed.txt", "Dn_130870923_2608_patient_number_fixed.txt", "1622件", "1142件", "1468件", "2026/10/23", "山田"],
+          ["……2607", "FF1_130870923_2607_patient_number_fixed.txt", "Dn_130870923_2607_patient_number_fixed.txt", "1577件", "1132件", "1396件", "2026/09/10", "山田"]
+        ];
+
+        var ff1File = null;
+        var dFile = null;
+
+        var els = {
+          hasRule: document.getElementById("has-rule"),
+          logBody: document.getElementById("log-body"),
+          modal: document.getElementById("import-modal"),
+          decryptField: document.getElementById("decrypt-field"),
+          btnImport: document.getElementById("btn-import"),
+          btnUpload: document.getElementById("btn-upload"),
+          ff1Input: document.getElementById("ff1-input"),
+          dInput: document.getElementById("d-input"),
+          ff1Empty: document.getElementById("ff1-empty"),
+          ff1Chosen: document.getElementById("ff1-chosen"),
+          ff1Name: document.getElementById("ff1-name"),
+          dEmpty: document.getElementById("d-empty"),
+          dChosen: document.getElementById("d-chosen"),
+          dName: document.getElementById("d-name")
+        };
+
+        function renderLogs() {
+          els.logBody.textContent = "";
+          logs.forEach(function (row) {
+            var tr = document.createElement("tr");
+            row.forEach(function (cell, index) {
+              var td = document.createElement("td");
+              td.textContent = cell;
+              if (index === 1 || index === 2) td.className = "text-left";
+              tr.appendChild(td);
+            });
+            els.logBody.appendChild(tr);
+          });
+        }
+
+        function syncDecryptField() {
+          els.decryptField.hidden = !els.hasRule.checked;
+        }
+
+        function syncFiles() {
+          els.ff1Empty.hidden = ff1File !== null;
+          els.ff1Chosen.hidden = ff1File === null;
+          els.ff1Name.textContent = ff1File ? ff1File.name : "";
+          els.dEmpty.hidden = dFile !== null;
+          els.dChosen.hidden = dFile === null;
+          els.dName.textContent = dFile ? dFile.name : "";
+          els.btnUpload.disabled = ff1File === null;
+        }
+
+        function resetForm() {
+          ff1File = null;
+          dFile = null;
+          els.ff1Input.value = "";
+          els.dInput.value = "";
+          var yes = document.querySelector('input[name="decrypt"][value="yes"]');
+          if (yes) yes.checked = true;
+          syncFiles();
+          syncDecryptField();
+        }
+
+        function openModal() {
+          resetForm();
+          els.modal.classList.add("is-open");
+        }
+
+        function closeModal() {
+          els.modal.classList.remove("is-open");
+        }
+
+        els.btnImport.addEventListener("click", openModal);
+        document.getElementById("modal-close").addEventListener("click", closeModal);
+        document.getElementById("btn-cancel").addEventListener("click", closeModal);
+        els.modal.addEventListener("click", function (event) {
+          if (event.target === els.modal) closeModal();
+        });
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape") closeModal();
+        });
+
+        document.getElementById("ff1-pick").addEventListener("click", function () {
+          els.ff1Input.click();
+        });
+        document.getElementById("d-pick").addEventListener("click", function () {
+          els.dInput.click();
+        });
+        els.ff1Input.addEventListener("change", function () {
+          ff1File = els.ff1Input.files[0] || null;
+          syncFiles();
+        });
+        els.dInput.addEventListener("change", function () {
+          dFile = els.dInput.files[0] || null;
+          syncFiles();
+        });
+        document.getElementById("ff1-clear").addEventListener("click", function () {
+          ff1File = null;
+          els.ff1Input.value = "";
+          syncFiles();
+        });
+        document.getElementById("d-clear").addEventListener("click", function () {
+          dFile = null;
+          els.dInput.value = "";
+          syncFiles();
+        });
+
+        els.hasRule.addEventListener("change", syncDecryptField);
+
+        els.btnUpload.addEventListener("click", function () {
+          if (!ff1File) return;
+          var decrypt = true;
+          if (els.hasRule.checked) {
+            var selected = document.querySelector('input[name="decrypt"]:checked');
+            decrypt = selected && selected.value === "yes";
+          } else {
+            decrypt = false;
+          }
+          logs.unshift([
+            "新規",
+            ff1File.name,
+            dFile ? dFile.name : "-",
+            decrypt ? "復号して取込中" : "そのまま取込中",
+            "-",
+            "-",
+            "2026/10/23",
+            "山田"
+          ]);
+          renderLogs();
+          closeModal();
+        });
+
+        renderLogs();
+        syncDecryptField();
+      })();
+    </script>
+  </body>
+</html>

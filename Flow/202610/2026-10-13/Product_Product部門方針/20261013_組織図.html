@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Product部門 2027/1・2027/7</title>
+  <style>
+    :root {
+      --title: #0822b1;
+      --vision: #133ba3;
+      --sec-blue: #0669ff;
+      --badge-blue: #0163f9;
+      --badge-gray: #666972;
+      --badge-purple: #4f0cb5;
+      --prod: #015df4;
+      --prod-bg: #ecf5fe;
+      --cre: #048024;
+      --cre-bg: #eef5e8;
+      --border-gray: #d0d4da;
+      --label-bg: #f3f4f6;
+      --label-text: #555;
+      --text: #1a1a1a;
+      --muted: #7a808a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 1536px;
+      background: #fff;
+      color: var(--text);
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "YuGothic", "Meiryo", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .page {
+      width: 1536px;
+      padding: 14px 30px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #fff;
+    }
+    h1 {
+      text-align: center;
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--title);
+      line-height: 1.15;
+      letter-spacing: 0.02em;
+    }
+    h1 .sub { font-size: 22px; margin-left: 12px; color: var(--vision); }
+
+    .badge {
+      width: 30px; height: 30px; border-radius: 50%; color: #fff;
+      font-size: 15px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .badge.blue { background: var(--badge-blue); }
+    .badge.gray { background: var(--badge-gray); }
+    .badge.purple { background: var(--badge-purple); }
+    .sec-title { font-size: 17px; font-weight: 700; color: var(--sec-blue); white-space: nowrap; }
+    .sec-title.gray { color: var(--badge-gray); }
+    .sec-title.purple { color: var(--badge-purple); }
+    .sec-head { display: flex; align-items: center; gap: 10px; }
+
+    /* ① Vision / Policy */
+    .vision-frame {
+      border: 2px solid var(--prod);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      overflow: hidden;
+    }
+    .vp-cell { padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
+    .vp-cell + .vp-cell { border-left: 1px solid #c9d8f5; }
+    .vp-key {
+      font-size: 14px; font-weight: 700; color: #fff; background: var(--prod);
+      border-radius: 4px; padding: 3px 10px; white-space: nowrap;
+    }
+    .vp-text { font-size: 18px; font-weight: 700; color: var(--vision); line-height: 1.4; }
+    .vp-note { font-size: 13px; font-weight: 600; color: #555; margin-top: 2px; }
+
+    /* ② Teams */
+    .teams-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .team {
+      border: 2px solid; border-radius: 8px; overflow: hidden;
+      display: flex; flex-direction: column; background: #fff; position: relative;
+    }
+    .team.prod { border-color: var(--prod); }
+    .team.cre { border-color: var(--cre); }
+    .team-badge { position: absolute; top: 9px; left: 10px; background: #fff !important; color: var(--prod) !important; }
+    .team-hdr { color: #fff; font-size: 22px; font-weight: 700; text-align: center; padding: 10px 8px; line-height: 1.2; }
+    .prod .team-hdr { background: var(--prod); }
+    .cre .team-hdr { background: var(--cre); }
+    .team-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+
+    .mission {
+      border-radius: 6px; padding: 9px 12px; font-size: 18px; font-weight: 700;
+      text-align: center; line-height: 1.35; border: 2px solid;
+    }
+    .prod .mission { background: var(--prod-bg); color: var(--prod); border-color: var(--prod); }
+    .cre .mission { background: var(--cre-bg); color: var(--cre); border-color: var(--cre); }
+    .mission .mk { font-size: 13px; font-weight: 700; margin-right: 8px; opacity: 0.85; }
+    .mission .add {
+      display: block; margin-top: 3px; font-size: 14px; font-weight: 700; line-height: 1.45;
+    }
+    .members {
+      display: grid; grid-template-columns: 92px 1fr; align-items: center;
+      border: 1px solid var(--border-gray); border-radius: 6px; overflow: hidden;
+    }
+    .members .mlabel {
+      background: var(--label-bg); color: var(--label-text); font-size: 14px; font-weight: 700;
+      height: 100%; display: flex; align-items: center; justify-content: center; padding: 8px 6px;
+    }
+    .members .mval { font-size: 16px; font-weight: 700; padding: 8px 12px; line-height: 1.45; }
+    .members .mval .small { font-size: 13.5px; font-weight: 600; color: #555; display: block; }
+
+    .duty { border: 1px solid var(--border-gray); border-radius: 6px; overflow: hidden; }
+    .duty-row { display: grid; grid-template-columns: 190px 1fr; border-bottom: 1px solid #e3e6ea; min-height: 54px; }
+    .duty-row:last-child { border-bottom: none; }
+    .duty-k {
+      background: var(--label-bg); padding: 6px 10px; display: flex; flex-direction: column;
+      justify-content: center; border-right: 1px solid #e3e6ea;
+    }
+    .duty-k .k1 { font-size: 15px; font-weight: 700; color: #333; }
+    .duty-k .k2 { font-size: 11.5px; color: #666; line-height: 1.3; margin-top: 1px; }
+    .duty-v { padding: 7px 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .chip {
+      font-size: 14px; font-weight: 700; border-radius: 999px; padding: 3px 11px;
+      border: 1.5px solid; white-space: nowrap; line-height: 1.35;
+    }
+    .prod .chip.on { color: var(--prod); border-color: var(--prod); background: var(--prod-bg); }
+    .cre .chip.on { color: var(--cre); border-color: var(--cre); background: var(--cre-bg); }
+    .chip.frozen { color: var(--muted); border-color: #c5cad1; background: #f3f4f6; }
+    .chip.tbd { color: var(--muted); border-color: #b9bec6; border-style: dashed; background: #fff; }
+    .chip.none { color: var(--muted); border-color: transparent; background: transparent; font-weight: 600; padding-left: 2px; }
+    .chip-note { font-size: 12.5px; color: #666; font-weight: 600; }
+
+    /* ③ Cross */
+    .cross-head { display: flex; align-items: center; gap: 10px; }
+    .lead-status {
+      margin-left: 6px; font-size: 14px; font-weight: 700; border-radius: 4px; padding: 3px 10px;
+    }
+    .lead-status.vacant { background: #f1f2f4; color: #555; border: 1.5px dashed #9aa0a8; }
+    .lead-status.filled { background: var(--badge-blue); color: #fff; }
+    .cross-grid { border: 2px solid var(--border-gray); border-radius: 8px; overflow: hidden; }
+    .cross-row { display: grid; grid-template-columns: 200px 430px 1fr; border-bottom: 1px solid #d8dce2; min-height: 56px; }
+    .cross-row:last-child { border-bottom: none; }
+    .cross-label {
+      background: var(--label-bg); color: #333; font-size: 17px; font-weight: 700;
+      display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-right: 1px solid #d8dce2;
+    }
+    .cross-label svg { flex-shrink: 0; }
+    .cross-who {
+      font-size: 16px; font-weight: 700; padding: 8px 16px; display: flex; align-items: center;
+      border-right: 1px solid #e3e6ea; line-height: 1.45;
+    }
+    .cross-who .small { font-size: 13px; font-weight: 600; color: #555; margin-left: 4px; }
+    .cross-who.lead { color: var(--badge-blue); }
+    .cross-desc { font-size: 15px; color: #333; padding: 8px 16px; display: flex; align-items: center; line-height: 1.45; }
+    .cross-desc .small { font-size: 13px; color: #666; margin-left: 8px; }
+
+    /* ④ Footer */
+    .goal-block {
+      border: 2px solid var(--badge-purple); border-radius: 8px; padding: 10px 18px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .goal-text { font-size: 17px; font-weight: 700; line-height: 1.5; }
+    .goal-text .todo { color: var(--badge-purple); }
+  </style>
+</head>
+<body>
+
+<!-- ========================= 2027/1 ========================= -->
+<div class="page" id="y202701">
+  <h1>Product部門 2027/1</h1>
+
+  <div class="vision-frame" style="grid-template-columns: 1fr;">
+    <div class="vp-cell">
+      <span class="badge blue">1</span>
+      <span class="vp-key">部門Vision</span>
+      <div class="vp-text">現場に深く入り込み、プロダクトの価値を高め続ける</div>
+    </div>
+  </div>
+
+  <div class="teams-grid">
+    <div class="team prod">
+      <span class="badge team-badge">2</span>
+      <div class="team-hdr">Product チーム</div>
+      <div class="team-body">
+        <div class="mission">AI DPCの新規機能開発・デリバリーを担う<span class="add">現場に入り込んでのプロダクト開発</span></div>
+        <div class="members">
+          <div class="mlabel">メンバー</div>
+          <div class="mval">小山・鈴木 ＋ 業務委託（新保 ※兼務）</div>
+        </div>
+        <div class="duty">
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">新規機能開発</span><span class="k2">売上に直結する機能</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">保守監視</span><span class="k2">定常監視・障害対応・質問調査</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">信頼性向上</span><span class="k2">運用業務の効率化</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">DataOps</span><span class="k2">データ管理・登録業務</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="team cre">
+      <div class="team-hdr">CRE チーム</div>
+      <div class="team-body">
+        <div class="mission">foroの保守・データ管理を担保する<span class="add">foro入退院 高速開発<br>foroCRM保守業務の品質UP</span></div>
+        <div class="members">
+          <div class="mlabel">メンバー</div>
+          <div class="mval">黒川 ＋ 業務委託（吉田(享)・新保 ※兼務） ＋ 現DataOpsチーム</div>
+        </div>
+        <div class="duty">
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">新規機能開発</span><span class="k2">売上に直結する機能</span></div>
+            <div class="duty-v">
+              <span class="chip on">入退院</span>
+              <span class="chip frozen">foro</span><span class="chip frozen">MIS／管理ツール</span><span class="chip frozen">refery</span>
+            </div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">保守監視</span><span class="k2">定常監視・障害対応・質問調査</span></div>
+            <div class="duty-v"><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span><span class="chip on">入退院</span><span class="chip on">refery</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">信頼性向上</span><span class="k2">運用業務の効率化</span></div>
+            <div class="duty-v"><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span><span class="chip on">入退院</span><span class="chip on">refery</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">DataOps</span><span class="k2">データ管理・登録業務</span></div>
+            <div class="duty-v"><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cross-head">
+    <span class="badge gray">3</span>
+    <span class="sec-title gray">横串</span>
+  </div>
+  <div class="cross-grid">
+    <div class="cross-row">
+      <div class="cross-label">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M16 3l11 4v8c0 7-5 12-11 14C10 27 5 22 5 15V7l11-4z" fill="#5a6270"/></svg>
+        セキュリティ
+      </div>
+      <div class="cross-who">山田・小山<span class="small">（＋吉田(享)：インフラ周りの機能開発）</span></div>
+      <div class="cross-desc"></div>
+    </div>
+    <div class="cross-row">
+      <div class="cross-label">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><rect x="5" y="5" width="22" height="8" rx="2" fill="#5a6270"/><rect x="5" y="19" width="22" height="8" rx="2" fill="#5a6270"/><circle cx="10" cy="9" r="1.5" fill="#fff"/><circle cx="10" cy="23" r="1.5" fill="#fff"/></svg>
+        インフラ
+      </div>
+      <div class="cross-who">山田・吉田(享)・新保</div>
+      <div class="cross-desc">AIDPC：新保、foro：吉田(享)</div>
+    </div>
+    <div class="cross-row">
+      <div class="cross-label">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><ellipse cx="16" cy="17" rx="12" ry="10" fill="#5a6270"/><circle cx="11" cy="14" r="2" fill="#fff"/><circle cx="17" cy="11" r="2" fill="#fff"/><circle cx="22" cy="16" r="2" fill="#fff"/></svg>
+        デザイン
+      </div>
+      <div class="cross-who">田中</div>
+      <div class="cross-desc"></div>
+    </div>
+  </div>
+
+  <div class="goal-block">
+    <span class="badge purple">4</span>
+    <p class="goal-text">FDEチームをProductチームとし、インフラ管理・開発力UPのために新保さんが参画（兼務）。CREは新規開発を限定し、foroの保守・データ管理を安定させる。<br>
+      <span class="todo">直近のToDo：VPoT／T/L／CTO候補の採用</span><br>
+      <span class="todo">今後の方向性：AI DPCの事業状況に応じて、増員、CREとの役割見直しを行う</span></p>
+  </div>
+</div>
+
+<!-- ========================= 2027/7 パターン1 ========================= -->
+<div class="page" id="y202707_p1">
+  <h1>Product部門 2027/7<span class="sub">パターン1：新規はProduct、品質はCRE</span></h1>
+
+  <div class="vision-frame">
+    <div class="vp-cell">
+      <span class="badge blue">1</span>
+      <span class="vp-key">部門Vision</span>
+      <div class="vp-text">現場に深く入り込み、プロダクトの価値を高め続ける</div>
+    </div>
+    <div class="vp-cell">
+      <span class="vp-key">Policy</span>
+      <div>
+        <div class="vp-text">全員が一次情報を取得できる</div>
+        <div class="vp-note">横串のインフラ・セキュリティは必須にしない</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="teams-grid">
+    <div class="team prod">
+      <span class="badge team-badge">2</span>
+      <div class="team-hdr">Product チーム</div>
+      <div class="team-body">
+        <div class="mission"><span class="mk">Mission</span>獲得MRRの最大化<span class="add">現場に入り込んでのプロダクト開発</span></div>
+        <div class="members">
+          <div class="mlabel">担当範囲</div>
+          <div class="mval">全プロダクトの新規機能開発
+            <span class="small">AI DPCは保守監視も持つ</span></div>
+        </div>
+        <div class="duty">
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">新規機能開発</span><span class="k2">売上に直結する機能</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span><span class="chip on">入退院</span><span class="chip on">refery</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">保守監視</span><span class="k2">定常監視・障害対応・質問調査</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">信頼性向上</span><span class="k2">運用業務の効率化</span></div>
+            <div class="duty-v"><span class="chip none">なし（CRE）</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">DataOps</span><span class="k2">データ管理・登録業務</span></div>
+            <div class="duty-v"><span class="chip none">なし（CRE）</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="team cre">
+      <div class="team-hdr">CRE チーム</div>
+      <div class="team-body">
+        <div class="mission"><span class="mk">Mission</span>チャーンの最小化<span class="add">foro入退院 高速開発<br>foroCRM保守業務の品質UP</span></div>
+        <div class="members">
+          <div class="mlabel">担当範囲</div>
+          <div class="mval">全プロダクトの信頼性向上とDataOps
+            <span class="small">AI DPC以外は保守監視も持つ</span></div>
+        </div>
+        <div class="duty">
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">新規機能開発</span><span class="k2">売上に直結する機能</span></div>
+            <div class="duty-v"><span class="chip none">なし（Product）</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">保守監視</span><span class="k2">定常監視・障害対応・質問調査</span></div>
+            <div class="duty-v"><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span><span class="chip on">入退院</span><span class="chip on">refery</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">信頼性向上</span><span class="k2">運用業務の効率化</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span><span class="chip on">入退院</span><span class="chip on">refery</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">DataOps</span><span class="k2">データ管理・登録業務</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span><span class="chip-note">（入退院・referyはタスクなし）</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cross-head">
+    <span class="badge gray">3</span>
+    <span class="sec-title gray">横串</span>
+    <span class="lead-status filled">横串の長（VPoT／T/L／CTO候補）：着任</span>
+  </div>
+  <div class="cross-grid">
+    <div class="cross-row">
+      <div class="cross-label">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M16 3l11 4v8c0 7-5 12-11 14C10 27 5 22 5 15V7l11-4z" fill="#5a6270"/></svg>
+        セキュリティ
+      </div>
+      <div class="cross-who lead">横串の長（VPoT／T/L／CTO候補）</div>
+      <div class="cross-desc">セキュリティ対応<span class="small">全プロダクト共通</span></div>
+    </div>
+    <div class="cross-row">
+      <div class="cross-label">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><rect x="5" y="5" width="22" height="8" rx="2" fill="#5a6270"/><rect x="5" y="19" width="22" height="8" rx="2" fill="#5a6270"/><circle cx="10" cy="9" r="1.5" fill="#fff"/><circle cx="10" cy="23" r="1.5" fill="#fff"/></svg>
+        インフラ
+      </div>
+      <div class="cross-who lead">横串の長（VPoT／T/L／CTO候補）</div>
+      <div class="cross-desc">インフラ・全体アーキテクチャー管理<span class="small">全プロダクト共通</span></div>
+    </div>
+    <div class="cross-row">
+      <div class="cross-label">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><ellipse cx="16" cy="17" rx="12" ry="10" fill="#5a6270"/><circle cx="11" cy="14" r="2" fill="#fff"/><circle cx="17" cy="11" r="2" fill="#fff"/><circle cx="22" cy="16" r="2" fill="#fff"/></svg>
+        デザイン
+      </div>
+      <div class="cross-who">田中</div>
+      <div class="cross-desc">プロダクトのデザイン</div>
+    </div>
+  </div>
+
+  <div class="goal-block">
+    <span class="badge purple">4</span>
+    <p class="goal-text">パターン1と2は、AI DPCにどれだけプロダクト開発が要るかで分かれる。どちらになるかはまだ決めない。<br>
+      <span class="todo">両パターン共通の直近ToDo：横串チームの長（VPoT／T/L／CTO候補）の採用</span><br>
+      <span class="todo">今後の方向性：AI DPCの事業状況に応じて、増員、CREとの役割見直しを行う</span></p>
+  </div>
+</div>
+
+<!-- ========================= 2027/7 パターン2 ========================= -->
+<div class="page" id="y202707_p2">
+  <h1>Product部門 2027/7<span class="sub">パターン2：プロダクトカット（AI DPC／SaaS）</span></h1>
+
+  <div class="vision-frame">
+    <div class="vp-cell">
+      <span class="badge blue">1</span>
+      <span class="vp-key">部門Vision</span>
+      <div class="vp-text">現場に深く入り込み、プロダクトの価値を高め続ける</div>
+    </div>
+    <div class="vp-cell">
+      <span class="vp-key">Policy</span>
+      <div>
+        <div class="vp-text">全員が一次情報を取得できる</div>
+        <div class="vp-note">横串のインフラ・セキュリティは必須にしない</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="teams-grid">
+    <div class="team prod">
+      <span class="badge team-badge">2</span>
+      <div class="team-hdr">Product チーム（AI DPC）</div>
+      <div class="team-body">
+        <div class="mission"><span class="mk">Mission</span>AI DPCの事業成長<span class="add">現場に入り込んでのプロダクト開発</span></div>
+        <div class="members">
+          <div class="mlabel">担当範囲</div>
+          <div class="mval">AI DPCの新規・保守監視・DataOps
+            <span class="small">AI DPCの信頼性向上はCRE</span></div>
+        </div>
+        <div class="duty">
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">新規機能開発</span><span class="k2">売上に直結する機能</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">保守監視</span><span class="k2">定常監視・障害対応・質問調査</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">信頼性向上</span><span class="k2">運用業務の効率化</span></div>
+            <div class="duty-v"><span class="chip none">なし（CRE）</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">DataOps</span><span class="k2">データ管理・登録業務</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="team cre">
+      <div class="team-hdr">CRE チーム（SaaS）</div>
+      <div class="team-body">
+        <div class="mission"><span class="mk">Mission</span>SaaSの事業成長<span class="add">foro入退院 高速開発<br>foroCRM保守業務の品質UP</span></div>
+        <div class="members">
+          <div class="mlabel">担当範囲</div>
+          <div class="mval">SaaS（foro・MIS／管理ツール・入退院・refery）全体
+            <span class="small">信頼性向上はAI DPCも持つ</span></div>
+        </div>
+        <div class="duty">
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">新規機能開発</span><span class="k2">売上に直結する機能</span></div>
+            <div class="duty-v"><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span><span class="chip on">入退院</span><span class="chip on">refery</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">保守監視</span><span class="k2">定常監視・障害対応・質問調査</span></div>
+            <div class="duty-v"><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span><span class="chip on">入退院</span><span class="chip on">refery</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">信頼性向上</span><span class="k2">運用業務の効率化</span></div>
+            <div class="duty-v"><span class="chip on">AI DPC</span><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span><span class="chip on">入退院</span><span class="chip on">refery</span></div>
+          </div>
+          <div class="duty-row">
+            <div class="duty-k"><span class="k1">DataOps</span><span class="k2">データ管理・登録業務</span></div>
+            <div class="duty-v"><span class="chip on">foro</span><span class="chip on">MIS／管理ツール</span><span class="chip-note">（入退院・referyはタスクなし）</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cross-head">
+    <span class="badge gray">3</span>
+    <span class="sec-title gray">横串</span>
+    <span class="lead-status filled">横串の長（VPoT／T/L／CTO候補）：着任</span>
+  </div>
+  <div class="cross-grid">
+    <div class="cross-row">
+      <div class="cross-label">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M16 3l11 4v8c0 7-5 12-11 14C10 27 5 22 5 15V7l11-4z" fill="#5a6270"/></svg>
+        セキュリティ
+      </div>
+      <div class="cross-who lead">横串の長（VPoT／T/L／CTO候補）</div>
+      <div class="cross-desc">セキュリティ対応<span class="small">全プロダクト共通</span></div>
+    </div>
+    <div class="cross-row">
+      <div class="cross-label">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><rect x="5" y="5" width="22" height="8" rx="2" fill="#5a6270"/><rect x="5" y="19" width="22" height="8" rx="2" fill="#5a6270"/><circle cx="10" cy="9" r="1.5" fill="#fff"/><circle cx="10" cy="23" r="1.5" fill="#fff"/></svg>
+        インフラ
+      </div>
+      <div class="cross-who lead">横串の長（VPoT／T/L／CTO候補）</div>
+      <div class="cross-desc">インフラ・全体アーキテクチャー管理<span class="small">全プロダクト共通</span></div>
+    </div>
+    <div class="cross-row">
+      <div class="cross-label">
+        <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><ellipse cx="16" cy="17" rx="12" ry="10" fill="#5a6270"/><circle cx="11" cy="14" r="2" fill="#fff"/><circle cx="17" cy="11" r="2" fill="#fff"/><circle cx="22" cy="16" r="2" fill="#fff"/></svg>
+        デザイン
+      </div>
+      <div class="cross-who">田中</div>
+      <div class="cross-desc">プロダクトのデザイン</div>
+    </div>
+  </div>
+
+  <div class="goal-block">
+    <span class="badge purple">4</span>
+    <p class="goal-text">パターン1と2は、AI DPCにどれだけプロダクト開発が要るかで分かれる。どちらになるかはまだ決めない。<br>
+      <span class="todo">両パターン共通の直近ToDo：横串チームの長（VPoT／T/L／CTO候補）の採用</span><br>
+      <span class="todo">今後の方向性：AI DPCの事業状況に応じて、増員、CREとの役割見直しを行う</span></p>
+  </div>
+</div>
+
+</body>
+</html>

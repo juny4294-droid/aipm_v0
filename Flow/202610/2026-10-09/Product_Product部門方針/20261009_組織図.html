@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Product部門 2027/1 と 2027/7</title>
+  <style>
+    :root {
+      --title: #0822b1;
+      --vision: #133ba3;
+      --sec-blue: #0669ff;
+      --badge-blue: #0163f9;
+      --badge-gray: #666972;
+      --badge-purple: #4f0cb5;
+      --fde: #015df4;
+      --dev: #048024;
+      --border-gray: #d0d4da;
+      --label-bg: #f3f4f6;
+      --label-text: #555;
+      --text: #1a1a1a;
+      --fde-out-bg: #ecf5fe;
+      --dev-out-bg: #f0f4ea;
+      --vacant: #6b7280;
+      --vacant-bg: #f3f4f6;
+      --vacant-border: #c5cad1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 1536px;
+      background: #fff;
+      color: var(--text);
+      font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "YuGothic", "Meiryo", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .page {
+      width: 1536px;
+      height: 1024px;
+      padding: 12px 30px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #fff;
+    }
+    h1 {
+      text-align: center;
+      font-size: 38px;
+      font-weight: 700;
+      color: var(--title);
+      line-height: 1.15;
+      letter-spacing: 0.02em;
+      flex: 0 0 auto;
+    }
+    .badge {
+      width: 32px; height: 32px; border-radius: 50%; color: #fff;
+      font-size: 16px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .badge.blue { background: var(--badge-blue); }
+    .badge.gray { background: var(--badge-gray); }
+    .badge.purple { background: var(--badge-purple); }
+    .sec-title { font-size: 17px; font-weight: 700; color: var(--sec-blue); white-space: nowrap; }
+    .sec-title.purple { color: var(--badge-purple); }
+    .sec-title.gray { color: var(--badge-gray); }
+
+    .point-block { flex: 0 0 auto; }
+    .point-frame {
+      border: 2px solid var(--fde);
+      border-radius: 8px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 64px;
+    }
+    .point-text {
+      flex: 1;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--vision);
+      line-height: 1.4;
+    }
+
+    .teams { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+    .teams-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      height: 100%;
+    }
+    .team {
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      height: 100%;
+      position: relative;
+    }
+    .team.product { border-color: var(--fde); }
+    .team.cre { border-color: var(--dev); }
+    .team-badge { position: absolute; top: 8px; left: 8px; z-index: 2; }
+    .team-hdr {
+      color: #fff; font-size: 22px; font-weight: 700; text-align: center;
+      padding: 12px 8px; line-height: 1.2;
+    }
+    .product .team-hdr { background: var(--fde); }
+    .cre .team-hdr { background: var(--dev); }
+    .team-body {
+      padding: 16px 16px 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 0;
+    }
+    .theme-line { font-size: 17px; font-weight: 700; line-height: 1.4; }
+    .product .theme-line { color: var(--fde); }
+    .cre .theme-line { color: var(--dev); }
+    .theme-sub { font-size: 15px; color: #333; line-height: 1.45; margin-top: 3px; }
+    .members {
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.45;
+      background: #fff;
+    }
+    .product .members { border: 2px solid var(--fde); }
+    .cre .members { border: 2px solid var(--dev); }
+    .bullets {
+      border: 2px solid;
+      border-radius: 6px;
+      padding: 14px 16px 14px 32px;
+      font-size: 16px;
+      line-height: 1.55;
+      background: #fff;
+    }
+    .product .bullets { border-color: var(--fde); }
+    .cre .bullets { border-color: var(--dev); }
+    .product .bullets li::marker { color: var(--fde); }
+    .cre .bullets li::marker { color: var(--dev); }
+    .bullets li + li { margin-top: 6px; }
+    .muted { color: #555; font-weight: 600; }
+    .outcome {
+      border-radius: 6px;
+      padding: 12px 10px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.4;
+      border: 2px solid;
+    }
+    .product .outcome { background: var(--fde-out-bg); color: var(--fde); border-color: var(--fde); }
+    .cre .outcome { background: var(--dev-out-bg); color: var(--dev); border-color: var(--dev); }
+
+    .cross-block { flex: 0 0 auto; }
+    .cross-head {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 6px; min-height: 32px;
+    }
+    .seat {
+      border: 2px solid var(--border-gray);
+      border-radius: 8px;
+      display: flex;
+      align-items: stretch;
+      overflow: hidden;
+      min-height: 108px;
+      background: #fff;
+    }
+    .seat-main {
+      flex: 1;
+      padding: 16px 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+    }
+    .seat-kicker { font-size: 14px; font-weight: 700; color: var(--label-text); }
+    .seat-title { font-size: 26px; font-weight: 700; line-height: 1.25; color: var(--text); }
+    .seat-who { font-size: 16px; font-weight: 600; color: #333; line-height: 1.4; }
+    .seat-status {
+      width: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+    .seat.vacant { border-color: var(--vacant-border); }
+    .seat.vacant .seat-status { background: var(--vacant-bg); color: var(--vacant); }
+    .seat.filled { border-color: var(--badge-blue); }
+    .seat.filled .seat-title { color: var(--badge-blue); }
+    .seat.filled .seat-status { background: var(--badge-blue); color: #fff; }
+
+    .goal-section { flex: 0 0 auto; }
+    .goal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; min-height: 32px; }
+    .goal-block {
+      border: 2px solid var(--badge-purple);
+      border-radius: 8px;
+      padding: 14px 20px;
+      text-align: center;
+    }
+    .goal-text { font-size: 18px; font-weight: 700; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="page" id="y202701">
+    <h1>Product部門 2027/1</h1>
+
+    <section class="point-block">
+      <div class="point-frame">
+        <span class="badge blue">1</span>
+        <span class="sec-title">この時点</span>
+        <p class="point-text">ProductはAI DPCの新規とデリバリー。CREはforoの保守とデータ管理を最低限で担保する。</p>
+      </div>
+    </section>
+
+    <section class="teams">
+      <div class="teams-grid">
+        <div class="team product">
+          <span class="badge blue team-badge">2</span>
+          <div class="team-hdr">Product チーム</div>
+          <div class="team-body">
+            <div>
+              <div class="theme-line">テーマ：AI DPCの新規</div>
+              <div class="theme-sub">新規機能開発とデリバリーに注力する</div>
+            </div>
+            <div class="members">担当：AI DPC</div>
+            <ul class="bullets">
+              <li>新規機能開発</li>
+              <li>デリバリー</li>
+              <li>保守監視・信頼性向上・DataOpsは<span class="muted">未確定</span></li>
+            </ul>
+            <div class="outcome">AI DPCの新規を届ける</div>
+          </div>
+        </div>
+        <div class="team cre">
+          <div class="team-hdr">CRE チーム</div>
+          <div class="team-body">
+            <div>
+              <div class="theme-line">テーマ：最低限の保守とデータ</div>
+              <div class="theme-sub">foroの保守とデータ管理を止めない</div>
+            </div>
+            <div class="members">foro（CRM／外来／連携）／ MIS・管理ツール ／ 入退院 ／ refery</div>
+            <ul class="bullets">
+              <li>保守監視と信頼性向上</li>
+              <li>新規は入退院のみ<span class="muted">（foro・MIS／管理ツール・referyは凍結）</span></li>
+              <li>DataOpsはforoとMIS／管理ツール<span class="muted">（入退院・referyはタスクなし）</span></li>
+            </ul>
+            <div class="outcome">保守とデータ管理を担保する</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cross-block">
+      <div class="cross-head">
+        <span class="badge gray">3</span>
+        <span class="sec-title gray">横串</span>
+      </div>
+      <div class="seat vacant">
+        <div class="seat-main">
+          <div class="seat-kicker">両チームの外から見る席</div>
+          <div class="seat-title">セキュリティ・インフラ</div>
+          <div class="seat-who">担い手は T/L（or VPoT）。この時点では置かない。</div>
+        </div>
+        <div class="seat-status">不在</div>
+      </div>
+    </section>
+
+    <section class="goal-section">
+      <div class="goal-head">
+        <span class="badge purple">4</span>
+        <span class="sec-title purple">2027年1月時点</span>
+      </div>
+      <div class="goal-block">
+        <p class="goal-text">2チームで回り始めている。セキュリティとインフラを見る人は、まだいない。</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="page" id="y202707">
+    <h1>Product部門 2027/7</h1>
+
+    <section class="point-block">
+      <div class="point-frame">
+        <span class="badge blue">1</span>
+        <span class="sec-title">この時点</span>
+        <p class="point-text">ProductはAI DPCの新規。CREはforoの保守・データに加え、AI DPCの信頼性とDataOpsを持つ。</p>
+      </div>
+    </section>
+
+    <section class="teams">
+      <div class="teams-grid">
+        <div class="team product">
+          <span class="badge blue team-badge">2</span>
+          <div class="team-hdr">Product チーム</div>
+          <div class="team-body">
+            <div>
+              <div class="theme-line">テーマ：AI DPCの新規</div>
+              <div class="theme-sub">新規機能開発に注力する</div>
+            </div>
+            <div class="members">担当：AI DPC</div>
+            <ul class="bullets">
+              <li>新規機能開発</li>
+              <li>信頼性向上とDataOpsはCRE</li>
+              <li>保守監視は<span class="muted">未確定</span><span class="muted">（ProductかCREか）</span></li>
+            </ul>
+            <div class="outcome">AI DPCの新規機能を届ける</div>
+          </div>
+        </div>
+        <div class="team cre">
+          <div class="team-hdr">CRE チーム</div>
+          <div class="team-body">
+            <div>
+              <div class="theme-line">テーマ：保守・データとAI DPCの品質</div>
+              <div class="theme-sub">foroの保守・データ管理に、AI DPCの信頼性向上とDataOpsを足す</div>
+            </div>
+            <div class="members">foro ／ MIS・管理ツール ／ 入退院 ／ refery ＋ AI DPC（品質）</div>
+            <ul class="bullets">
+              <li>保守監視：foro、MIS／管理ツール、入退院、refery</li>
+              <li>信頼性向上とDataOps：上記に AI DPC を追加</li>
+              <li>新規は入退院のみ<span class="muted">（ほかは未確定）</span></li>
+            </ul>
+            <div class="outcome">foroとAI DPCの業務品質を担保する</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cross-block">
+      <div class="cross-head">
+        <span class="badge gray">3</span>
+        <span class="sec-title gray">横串</span>
+      </div>
+      <div class="seat filled">
+        <div class="seat-main">
+          <div class="seat-kicker">両チームの外から見る席</div>
+          <div class="seat-title">セキュリティ・インフラ</div>
+          <div class="seat-who">T/L（or VPoT）が着任し、両チームのセキュリティとインフラを統括する。</div>
+        </div>
+        <div class="seat-status">着任</div>
+      </div>
+    </section>
+
+    <section class="goal-section">
+      <div class="goal-head">
+        <span class="badge purple">4</span>
+        <span class="sec-title purple">2027年7月時点</span>
+      </div>
+      <div class="goal-block">
+        <p class="goal-text">T/L（or VPoT）が着任し、セキュリティとインフラを横串で見ている。</p>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

@@ -27,3 +27,6 @@ tenant 274。親集合は `outpatient_ef` を直近1年で期間絞り（`patien
 
 ## 月次手順
 脳神経外科: `documents/4_executing/脳神経外科_月次抽出手順.md`
+
+実行の元ネタ（脳神経外科、N4追加後）: `documents/4_executing/queries/脳神経外科_N4追加後/`
+修正前（2026-10-27実行）: `documents/4_executing/queries/脳神経外科_N4追加前/`
