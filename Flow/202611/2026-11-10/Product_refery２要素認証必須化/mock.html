@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>refery 二要素認証必須化モック</title>
+    <style>
+      :root {
+        --gray100: #08151a;
+        --gray80: #3a4447;
+        --gray60: #6b7376;
+        --gray40: #a2a6a9;
+        --gray20: #cdd0d1;
+        --gray10: #e2e3e3;
+        --gray5: #f3f3f4;
+        --white: #fff;
+        --blue50: #4e5ef2;
+        --blue60: #1f3eec;
+        --blue5: #f4f5fb;
+        --green60: #2ac197;
+        --red70: #d92a00;
+        --red100: #b32200;
+        --yellow50: #f2ce4e;
+        --shadow: 0 1px 4px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.24);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        color: var(--gray100);
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        letter-spacing: 0.04em;
+        background: var(--gray5);
+      }
+      button, input { font: inherit; letter-spacing: inherit; color: inherit; }
+      button { cursor: pointer; }
+      a { color: inherit; text-decoration: none; }
+
+      .mockbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 16px;
+        padding: 10px 16px;
+        background: #1c2427;
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .mockbar strong { font-weight: 700; }
+      .mockbar .group { display: flex; align-items: center; gap: 6px; }
+      .mockbar button {
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 4px;
+        background: transparent;
+        color: #fff;
+      }
+      .mockbar button[aria-pressed="true"] {
+        background: var(--blue50);
+        border-color: var(--blue50);
+      }
+
+      .screen { height: calc(100vh - 49px); }
+      .screen[hidden] { display: none !important; }
+
+      .login {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: var(--gray5);
+        position: relative;
+      }
+      .login-header {
+        height: 56px;
+        padding: 12px 24px;
+        background: var(--white);
+      }
+      .login-header img { height: 33px; width: auto; display: block; }
+      .login-main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .login-card {
+        width: 480px;
+        max-width: 100%;
+        padding: 24px;
+        background: var(--white);
+        border-radius: 4px;
+        box-shadow: var(--shadow);
+      }
+      .login-card h1 {
+        margin: 0 0 24px;
+        font-size: 18px;
+        line-height: 1.25;
+        font-weight: 700;
+      }
+      .field { display: flex; flex-direction: column; font-size: 14px; line-height: 1.5; }
+      .field + .field { margin-top: 24px; }
+      .field input {
+        margin-top: 8px;
+        padding: 12px 16px;
+        width: 100%;
+        height: 48px;
+        border: 1px solid var(--gray20);
+        border-radius: 4px;
+        background: var(--white);
+      }
+      .field input:focus { outline: 1px solid var(--blue50); outline-offset: 2px; }
+      .field input.is-error { border-color: var(--red100); }
+      .form-error { margin: 0 0 8px; color: var(--red100); font-size: 14px; line-height: 1.5; }
+      .forgot {
+        display: inline-block;
+        margin-top: 24px;
+        font-size: 14px;
+        line-height: 1.25;
+        border-bottom: 1px solid var(--gray100);
+      }
+      .login-submit {
+        margin-top: 24px;
+        width: 100%;
+        height: 48px;
+        border: 0;
+        border-radius: 4px;
+        background: var(--blue50);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .login-submit:hover { background: var(--blue60); }
+      .login-footer {
+        height: 60px;
+        padding: 12px 24px;
+        border-top: 1px solid var(--gray20);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--gray5);
+      }
+      .login-footer a, .app-footer a { font-size: 12px; color: var(--gray60); }
+      .rights { font-size: 10px; color: var(--gray60); }
+
+      .setup, .app { height: 100%; display: flex; background: var(--white); }
+      .side {
+        width: 208px;
+        min-width: 208px;
+        height: 100%;
+        padding: 8px 4px;
+        background: var(--gray80);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      .side-head {
+        height: 40px;
+        padding: 4px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .side-head img { height: 32px; width: auto; }
+      .side nav { display: flex; flex-direction: column; gap: 0; }
+      .side .label {
+        padding: 0 12px 4px;
+        font-size: 12px;
+        line-height: 1;
+        color: #fff;
+      }
+      .nav-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: 36px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        color: #fff;
+        font-size: 14px;
+        line-height: 1.25;
+        text-align: left;
+        gap: 8px;
+      }
+      .nav-item svg { width: 20px; height: 20px; flex: none; }
+      .nav-item:hover { background: rgba(8, 21, 26, 0.4); }
+      .nav-item.is-current { background: rgba(8, 21, 26, 0.6); }
+      .badge {
+        margin-left: auto;
+        min-width: 16px;
+        height: 13px;
+        padding: 0 4px;
+        border-radius: 20px;
+        background: var(--red70);
+        color: #fff;
+        font-size: 10px;
+        line-height: 13px;
+        text-align: center;
+      }
+      .side-action { padding: 24px 12px; }
+      .btn-primary, .btn-basic {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 48px;
+        padding: 0 16px;
+        border-radius: 4px;
+        border: 0;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .btn-primary svg, .btn-basic svg { width: 24px; height: 24px; flex: none; }
+      .btn-primary { background: var(--blue50); color: #fff; }
+      .btn-primary:hover { background: var(--blue60); }
+      .btn-primary.wide { width: 100%; }
+      .btn-basic {
+        background: #fff;
+        color: var(--gray100);
+        border: 1px solid var(--gray40);
+      }
+      .main-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; }
+      .app-header {
+        height: 56px;
+        padding: 0 24px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .app-header h1 { margin: 0; font-size: 18px; line-height: 1.25; font-weight: 700; }
+      .account-wrap { position: relative; }
+      .account {
+        height: 36px;
+        padding: 4px 12px;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+      }
+      .account:hover, .account[aria-expanded="true"] { background: rgba(8, 21, 26, 0.05); }
+      .popover {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        width: 243px;
+        padding: 8px 0;
+        background: #fff;
+        border-radius: 4px;
+        box-shadow: var(--shadow);
+        z-index: 5;
+      }
+      .popover[hidden] { display: none; }
+      .popover button, .popover a {
+        display: block;
+        width: 100%;
+        padding: 8px 16px;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .popover button:hover, .popover a:hover { background: var(--gray5); }
+      .popover .who {
+        display: block;
+        padding: 8px 16px;
+        color: var(--gray60);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+      .popover hr { border: 0; border-top: 1px solid var(--gray10); margin: 4px 0; }
+      .app-body {
+        flex: 1;
+        min-height: 0;
+        background: var(--gray5);
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+      }
+      .app-content { flex: 1; padding: 24px; }
+      .app-footer {
+        height: 60px;
+        margin-top: 24px;
+        padding: 12px 24px;
+        border-top: 1px solid var(--gray20);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .app-footer nav { display: flex; gap: 16px; }
+
+      .card {
+        width: 800px;
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 24px;
+        background: #fff;
+        border-radius: 4px;
+        box-shadow: var(--shadow);
+      }
+      .card h2 { margin: 0; font-size: 20px; line-height: 1.5; font-weight: 400; }
+      .card p { margin: 16px 0 0; font-size: 14px; line-height: 1.5; }
+      .card .btn-primary { margin-top: 16px; }
+
+      .tabs { display: flex; gap: 0; margin-bottom: 16px; }
+      .tabs button {
+        padding: 12px 16px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        font-size: 16px;
+        line-height: 1.25;
+      }
+      .tabs button.is-current {
+        color: var(--blue50);
+        font-weight: 700;
+        border-bottom-color: var(--blue50);
+        cursor: default;
+      }
+      .table-wrap { background: #fff; border-radius: 4px; overflow: auto; }
+      table { width: 100%; border-collapse: collapse; }
+      table.wide { min-width: 980px; }
+      th {
+        padding: 12px 16px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--gray60);
+        border-bottom: 1px solid var(--gray10);
+        white-space: nowrap;
+      }
+      td {
+        padding: 12px 16px;
+        height: 62px;
+        font-size: 14px;
+        line-height: 1.25;
+        border-bottom: 1px solid var(--gray10);
+        vertical-align: middle;
+        background: #fff;
+      }
+      tr:hover td { background: var(--blue5); }
+      .name { font-weight: 700; }
+      .sub { display: block; margin-top: 4px; color: var(--gray60); font-size: 12px; font-weight: 400; }
+      .status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+      .status i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        display: inline-block;
+      }
+      .status.green { color: var(--green60); }
+      .status.blue { color: var(--blue50); }
+      .status.yellow { color: #c49200; }
+      .status.gray { color: var(--gray40); }
+      .placeholder {
+        padding: 48px 24px;
+        color: var(--gray60);
+        font-size: 14px;
+      }
+
+      label { cursor: pointer; }
+      .mockbar label {
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+      }
+      body:has(#flow-off:checked) .mockbar label[for="flow-off"],
+      body:has(#flow-on:checked) .mockbar label[for="flow-on"],
+      body:has(#side-guest:checked) .mockbar label[for="side-guest"],
+      body:has(#side-tenant:checked) .mockbar label[for="side-tenant"] {
+        background: var(--blue50);
+        border-color: var(--blue50);
+      }
+      .ctrl {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+        white-space: nowrap;
+      }
+      .screen { display: none; }
+      body:not(:has(#attempt:checked)) .screen.login,
+      body:has(#attempt:checked):not(:has(#login-id:valid)) .screen.login,
+      body:has(#attempt:checked):has(#login-id:valid):not(:has(#login-password:valid)) .screen.login {
+        display: block;
+      }
+      body:has(#attempt:checked):has(#login-id:valid):has(#login-password:valid):has(#flow-off:checked) .screen.setup {
+        display: flex;
+      }
+      body:has(#attempt:checked):has(#login-id:valid):has(#login-password:valid):has(#flow-on:checked):has(#side-guest:checked) .screen.top-guest,
+      body:has(#attempt:checked):has(#login-id:valid):has(#login-password:valid):has(#flow-on:checked):has(#side-tenant:checked) .screen.top-tenant {
+        display: block;
+      }
+      .form-error { display: none; }
+      body:has(#attempt:checked):has(#login-id:invalid) .err-id { display: block; }
+      body:has(#attempt:checked):has(#login-id:invalid) #login-id { border-color: var(--red100); }
+      body:has(#attempt:checked):has(#login-id:valid):has(#login-password:invalid) .err-pw { display: block; }
+      body:has(#attempt:checked):has(#login-password:invalid) #login-password { border-color: var(--red100); }
+      label.login-submit { display: flex; align-items: center; justify-content: center; }
+      .account-wrap .popover { display: none; }
+      .account-wrap:has(.menu:checked) .popover { display: block; }
+      .popover label { display: block; width: 100%; padding: 8px 16px; font-size: 14px; line-height: 1.5; }
+      .popover label:hover { background: var(--gray5); }
+      .logo { display: block; }
+      .login-header .logo { height: 33px; width: auto; }
+      .side-head .logo { height: 32px; width: auto; }
+      .ico { width: 20px; height: 20px; flex: none; }
+      .btn-primary .ico { width: 24px; height: 24px; }
+      .page { display: none; }
+      .top-guest:has(#g-top:checked) .page-top,
+      .top-tenant:has(#t-top:checked) .page-top { display: block; }
+      .top-guest:not(:has(#g-top:checked)) .page-other,
+      .top-tenant:not(:has(#t-top:checked)) .page-other { display: block; }
+      .top-guest:has(#g-top:checked) label[for="g-top"],
+      .top-guest:has(#g-ref:checked) label[for="g-ref"],
+      .top-guest:has(#g-new:checked) label[for="g-new"],
+      .top-tenant:has(#t-top:checked) label[for="t-top"],
+      .top-tenant:has(#t-req:checked) label[for="t-req"],
+      .top-tenant:has(#t-terms:checked) label[for="t-terms"],
+      .top-tenant:has(#t-doctors:checked) label[for="t-doctors"],
+      .top-tenant:has(#t-shift:checked) label[for="t-shift"],
+      .top-tenant:has(#t-dept:checked) label[for="t-dept"],
+      .top-tenant:has(#t-partners:checked) label[for="t-partners"] {
+        background: rgba(8, 21, 26, 0.6);
+      }
+      .top-guest h1 span, .top-tenant h1 span { display: none; }
+      .top-guest:has(#g-top:checked) .n-top,
+      .top-guest:has(#g-ref:checked) .n-ref,
+      .top-guest:has(#g-new:checked) .n-new,
+      .top-tenant:has(#t-top:checked) .n-top,
+      .top-tenant:has(#t-req:checked) .n-req,
+      .top-tenant:has(#t-terms:checked) .n-terms,
+      .top-tenant:has(#t-doctors:checked) .n-doctors,
+      .top-tenant:has(#t-shift:checked) .n-shift,
+      .top-tenant:has(#t-dept:checked) .n-dept,
+      .top-tenant:has(#t-partners:checked) .n-partners { display: inline; }
+    </style>
+  </head>
+    <body>
+    <input class="ctrl" type="radio" name="flow" id="flow-off" checked />
+    <input class="ctrl" type="radio" name="flow" id="flow-on" />
+    <input class="ctrl" type="radio" name="side" id="side-guest" checked />
+    <input class="ctrl" type="radio" name="side" id="side-tenant" />
+    <input class="ctrl" type="checkbox" id="attempt" />
+
+    <div class="mockbar">
+      <div class="group">
+        <strong>ケース</strong>
+        <label for="flow-off">未設定：ログイン → 二要素認証設定</label>
+        <label for="flow-on">設定済み：ログイン → TOP</label>
+      </div>
+      <div class="group">
+        <strong>利用側</strong>
+        <label for="side-guest">予約側（クリニック）</label>
+        <label for="side-tenant">受付側（病院）</label>
+      </div>
+    </div>
+
+    <section class="screen login">
+      <div class="login">
+        <header class="login-header"><svg class="logo"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 886.5 283.46"><g ><g><rect fill="none" width="886.5" height="283.46"/><g><g><path fill="#231815" d="M286.35,92.99h26.59l.59,9.58c0,2.94,0,5.28,.19,6.45,6.06-10.56,16.22-18.76,28.94-18.76,3.12,0,5.86,.38,6.25,.58v28.54c-.39-.2-2.74-1.17-6.45-1.17-14.86,0-26.98,13.1-26.98,30.89v41.63h-29.13V92.99Z"/><path fill="#231815" d="M453.67,136c0,5.28-.58,9.97-.78,11.92h-64.12c1.17,13.3,11.34,20.92,27.18,20.92,13.88,0,28.34-4.1,33.81-7.23v24.83c-6.06,3.13-19.15,7.04-36.56,7.04-33.61,0-54.73-21.7-54.73-51.61s21.7-51.61,49.65-51.61c30.1,0,45.55,21.5,45.55,45.74Zm-45.74-22.68c-11.74,0-18.38,9-19.16,19.55h36.95c.38-10.56-5.87-19.55-17.79-19.55Z"/><path fill="#231815" d="M482.02,92.99v-8.8c0-22.27,14.28-36.94,40.47-36.94,6.06,0,11.14,.78,12.9,1.17v24.83c-1.57-.59-5.28-1.37-9.97-1.37-9.96,0-16.41,5.48-16.41,15.63v5.48h22.87v22.88h-21.7v74.87h-29.13V115.86h-12.9v-22.88h13.88Z"/><path fill="#231815" d="M635.47,136c0,5.28-.58,9.97-.78,11.92h-64.12c1.17,13.3,11.34,20.92,27.18,20.92,13.88,0,28.34-4.1,33.81-7.23v24.83c-6.06,3.13-19.15,7.04-36.56,7.04-33.61,0-54.73-21.7-54.73-51.61s21.7-51.61,49.65-51.61c30.1,0,45.55,21.5,45.55,45.74Zm-45.74-22.68c-11.74,0-18.38,9-19.16,19.55h36.95c.38-10.56-5.87-19.55-17.79-19.55Z"/><path fill="#231815" d="M655.58,92.99h26.59l.59,9.58c0,2.94,0,5.28,.19,6.45,6.07-10.56,16.22-18.76,28.94-18.76,3.13,0,5.86,.38,6.26,.58v28.54c-.4-.2-2.75-1.17-6.45-1.17-14.87,0-26.99,13.1-26.99,30.89v41.63h-29.13V92.99Z"/><path fill="#231815" d="M733.49,208.52c1.76,.78,6.06,1.97,11.53,1.97,12.9,0,19.55-8.61,24.83-19.75l-40.27-97.74h32.07l11.34,34.01c4.1,11.93,8.21,24.05,11.53,36.36,2.54-5.47,8.99-29.13,11.74-36.36l11.34-34.01h31.67l-37.93,96.96c-11.15,28.94-25.81,43.4-46.33,45.75-4.49,.59-8.6,.59-12.32,.19-3.9-.38-7.62-.97-9.18-1.76v-25.61Z"/></g><g><path fill="#00a883" d="M198.38,150.23c7.03-2.04,13.35-5.32,18.8-9.54,17.79-13.76,26.32-37.47,19.67-60.38l-47.55,13.79c-7.03,2.04-13.35,5.32-18.8,9.54-17.79,13.76-26.32,37.47-19.67,60.38l47.55-13.79Z"/><path fill="#00a883" d="M138.54,138.55c0-13.17-2.78-25.69-7.82-37-14.19-31.99-46.24-54.3-83.48-54.3v97.68c0,13.17,2.78,25.68,7.82,36.99,14.19,31.99,46.23,54.3,83.48,54.3v-97.67Z"/></g></g></g></g></svg></header>
+        <div class="login-main">
+          <div class="login-card">
+            <h1>ログイン</h1>
+            <p class="form-error err-id">メールアドレスまたはログインIDを入力してください</p>
+            <p class="form-error err-pw">パスワードを入力してください</p>
+            <label class="field">
+              メールアドレスまたはログインID
+              <input id="login-id" autocomplete="username" required />
+            </label>
+            <label class="field">
+              パスワード
+              <input id="login-password" type="password" autocomplete="current-password" required />
+            </label>
+            <span class="forgot">パスワードを忘れた方</span>
+            <label class="login-submit" for="attempt">ログイン</label>
+          </div>
+        </div>
+        <footer class="login-footer">
+          <a href="https://medup.jp/" target="_blank" rel="noreferrer">運営会社</a>
+          <div class="rights">2023 MedUp, Inc. ALL RIGHTS RESERVED.</div>
+        </footer>
+      </div>
+    </section>
+
+    <section class="screen setup">
+      <div class="main-col">
+        <header class="app-header">
+          <h1>二要素認証の設定</h1>
+          <label class="account" for="attempt">ログアウト</label>
+        </header>
+        <div class="app-body">
+          <div class="app-content">
+            <div class="card">
+              <h2>二要素認証の設定</h2>
+              <p>
+                パスワードと認証コードによるログインで、第三者からの不正なアクセスを防ぎます。<br />
+                認証コードはパスワード入力後、登録メールアドレスへ送信されます。
+              </p>
+              <button class="btn-primary" type="button">二要素認証を設定する</button>
+            </div>
+          </div>
+          <footer class="app-footer">
+            <nav>
+              <a href="https://medup.jp/" target="_blank" rel="noreferrer">利用規約</a>
+              <a href="https://medup.jp/" target="_blank" rel="noreferrer">プライバシーポリシー</a>
+            </nav>
+            <div class="rights">2023 MedUp, Inc. ALL RIGHTS RESERVED.</div>
+          </footer>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen top-guest">
+      <input class="ctrl" type="radio" name="gpage" id="g-top" checked />
+      <input class="ctrl" type="radio" name="gpage" id="g-ref" />
+      <input class="ctrl" type="radio" name="gpage" id="g-new" />
+      <div class="app">
+        <aside class="side">
+          <div class="side-head"><svg class="logo"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 886.5 283.46"><g ><g><rect fill="none" width="886.5" height="283.46"/><g><g><path fill="#ffffff" d="M286.35,92.99h26.59l.59,9.58c0,2.94,0,5.28,.19,6.45,6.06-10.56,16.22-18.76,28.94-18.76,3.12,0,5.86,.38,6.25,.58v28.54c-.39-.2-2.74-1.17-6.45-1.17-14.86,0-26.98,13.1-26.98,30.89v41.63h-29.13V92.99Z"/><path fill="#ffffff" d="M453.67,136c0,5.28-.58,9.97-.78,11.92h-64.12c1.17,13.3,11.34,20.92,27.18,20.92,13.88,0,28.34-4.1,33.81-7.23v24.83c-6.06,3.13-19.15,7.04-36.56,7.04-33.61,0-54.73-21.7-54.73-51.61s21.7-51.61,49.65-51.61c30.1,0,45.55,21.5,45.55,45.74Zm-45.74-22.68c-11.74,0-18.38,9-19.16,19.55h36.95c.38-10.56-5.87-19.55-17.79-19.55Z"/><path fill="#ffffff" d="M482.02,92.99v-8.8c0-22.27,14.28-36.94,40.47-36.94,6.06,0,11.14,.78,12.9,1.17v24.83c-1.57-.59-5.28-1.37-9.97-1.37-9.96,0-16.41,5.48-16.41,15.63v5.48h22.87v22.88h-21.7v74.87h-29.13V115.86h-12.9v-22.88h13.88Z"/><path fill="#ffffff" d="M635.47,136c0,5.28-.58,9.97-.78,11.92h-64.12c1.17,13.3,11.34,20.92,27.18,20.92,13.88,0,28.34-4.1,33.81-7.23v24.83c-6.06,3.13-19.15,7.04-36.56,7.04-33.61,0-54.73-21.7-54.73-51.61s21.7-51.61,49.65-51.61c30.1,0,45.55,21.5,45.55,45.74Zm-45.74-22.68c-11.74,0-18.38,9-19.16,19.55h36.95c.38-10.56-5.87-19.55-17.79-19.55Z"/><path fill="#ffffff" d="M655.58,92.99h26.59l.59,9.58c0,2.94,0,5.28,.19,6.45,6.07-10.56,16.22-18.76,28.94-18.76,3.13,0,5.86,.38,6.26,.58v28.54c-.4-.2-2.75-1.17-6.45-1.17-14.87,0-26.99,13.1-26.99,30.89v41.63h-29.13V92.99Z"/><path fill="#ffffff" d="M733.49,208.52c1.76,.78,6.06,1.97,11.53,1.97,12.9,0,19.55-8.61,24.83-19.75l-40.27-97.74h32.07l11.34,34.01c4.1,11.93,8.21,24.05,11.53,36.36,2.54-5.47,8.99-29.13,11.74-36.36l11.34-34.01h31.67l-37.93,96.96c-11.15,28.94-25.81,43.4-46.33,45.75-4.49,.59-8.6,.59-12.32,.19-3.9-.38-7.62-.97-9.18-1.76v-25.61Z"/></g><g><path fill="#00a883" d="M198.38,150.23c7.03-2.04,13.35-5.32,18.8-9.54,17.79-13.76,26.32-37.47,19.67-60.38l-47.55,13.79c-7.03,2.04-13.35,5.32-18.8,9.54-17.79,13.76-26.32,37.47-19.67,60.38l47.55-13.79Z"/><path fill="#00a883" d="M138.54,138.55c0-13.17-2.78-25.69-7.82-37-14.19-31.99-46.24-54.3-83.48-54.3v97.68c0,13.17,2.78,25.68,7.82,36.99,14.19,31.99,46.23,54.3,83.48,54.3v-97.67Z"/></g></g></g></g></svg></div>
+          <nav>
+            <label class="nav-item" for="g-top">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8.3 13.3-3.5-3.5 1.4-1.4 2.1 2.1 4.6-4.6 1.4 1.4-6 6z"/></svg>
+              <span>紹介予約</span>
+              <span class="badge">2</span>
+            </label>
+            <label class="nav-item" for="g-ref">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 11V5l-3-3-3 3v2H3v14h18V11h-6zm-8 8H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V9h2v2zm6 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm6 12h-2v-2h2v2zm0-4h-2v-2h2v2z"/></svg>
+              <span>紹介先</span>
+            </label>
+            <div class="side-action">
+              <label class="btn-primary wide" for="g-new">
+                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                新規予約
+              </label>
+            </div>
+          </nav>
+        </aside>
+        <div class="main-col">
+          <header class="app-header">
+            <h1>
+              <span class="n-top">紹介予約</span>
+              <span class="n-ref">紹介先</span>
+              <span class="n-new">新規予約</span>
+            </h1>
+            <div class="account-wrap">
+              <input class="ctrl menu" type="checkbox" id="menu-guest" />
+              <label class="account" for="menu-guest">
+                青山クリニック
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5H7z"/></svg>
+              </label>
+              <div class="popover">
+                <span class="who">青山 美咲</span>
+                <label for="attempt">ログアウト</label>
+              </div>
+            </div>
+          </header>
+          <div class="app-body">
+            <div class="app-content">
+              <div class="page page-top">
+                <div class="tabs">
+                  <button type="button" class="is-current">要確認</button>
+                  <button type="button">リクエスト中</button>
+                  <button type="button">すべて</button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>調整状況</th><th>患者名</th><th>予約日時</th><th>紹介先/診療科</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><span class="status blue"><i></i>要確認</span></td>
+                        <td class="name">佐藤 花</td>
+                        <td>第一希望：2026/11/12（木）午前</td>
+                        <td>架空総合病院<span class="sub">内科</span></td>
+                      </tr>
+                      <tr>
+                        <td><span class="status blue"><i></i>リクエスト中</span></td>
+                        <td class="name">鈴木 蓮</td>
+                        <td>第一希望：2026/11/18（水）午後</td>
+                        <td>架空総合病院<span class="sub">整形外科</span></td>
+                      </tr>
+                      <tr>
+                        <td><span class="status green"><i></i>確定済</span></td>
+                        <td class="name">高橋 葵</td>
+                        <td>2026/11/20（金）<span class="sub">10:30〜</span></td>
+                        <td>架空総合病院<span class="sub">消化器内科</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <p class="placeholder page page-other">現行の画面です。このモックでは中身を省略しています。</p>
+            </div>
+            <footer class="app-footer">
+              <nav>
+                <a href="https://medup.jp/" target="_blank" rel="noreferrer">利用規約</a>
+                <a href="https://medup.jp/" target="_blank" rel="noreferrer">プライバシーポリシー</a>
+              </nav>
+              <div class="rights">2023 MedUp, Inc. ALL RIGHTS RESERVED.</div>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen top-tenant">
+      <input class="ctrl" type="radio" name="tpage" id="t-top" checked />
+      <input class="ctrl" type="radio" name="tpage" id="t-req" />
+      <input class="ctrl" type="radio" name="tpage" id="t-terms" />
+      <input class="ctrl" type="radio" name="tpage" id="t-doctors" />
+      <input class="ctrl" type="radio" name="tpage" id="t-shift" />
+      <input class="ctrl" type="radio" name="tpage" id="t-dept" />
+      <input class="ctrl" type="radio" name="tpage" id="t-partners" />
+      <div class="app">
+        <aside class="side">
+          <div class="side-head"><svg class="logo"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 886.5 283.46"><g ><g><rect fill="none" width="886.5" height="283.46"/><g><g><path fill="#ffffff" d="M286.35,92.99h26.59l.59,9.58c0,2.94,0,5.28,.19,6.45,6.06-10.56,16.22-18.76,28.94-18.76,3.12,0,5.86,.38,6.25,.58v28.54c-.39-.2-2.74-1.17-6.45-1.17-14.86,0-26.98,13.1-26.98,30.89v41.63h-29.13V92.99Z"/><path fill="#ffffff" d="M453.67,136c0,5.28-.58,9.97-.78,11.92h-64.12c1.17,13.3,11.34,20.92,27.18,20.92,13.88,0,28.34-4.1,33.81-7.23v24.83c-6.06,3.13-19.15,7.04-36.56,7.04-33.61,0-54.73-21.7-54.73-51.61s21.7-51.61,49.65-51.61c30.1,0,45.55,21.5,45.55,45.74Zm-45.74-22.68c-11.74,0-18.38,9-19.16,19.55h36.95c.38-10.56-5.87-19.55-17.79-19.55Z"/><path fill="#ffffff" d="M482.02,92.99v-8.8c0-22.27,14.28-36.94,40.47-36.94,6.06,0,11.14,.78,12.9,1.17v24.83c-1.57-.59-5.28-1.37-9.97-1.37-9.96,0-16.41,5.48-16.41,15.63v5.48h22.87v22.88h-21.7v74.87h-29.13V115.86h-12.9v-22.88h13.88Z"/><path fill="#ffffff" d="M635.47,136c0,5.28-.58,9.97-.78,11.92h-64.12c1.17,13.3,11.34,20.92,27.18,20.92,13.88,0,28.34-4.1,33.81-7.23v24.83c-6.06,3.13-19.15,7.04-36.56,7.04-33.61,0-54.73-21.7-54.73-51.61s21.7-51.61,49.65-51.61c30.1,0,45.55,21.5,45.55,45.74Zm-45.74-22.68c-11.74,0-18.38,9-19.16,19.55h36.95c.38-10.56-5.87-19.55-17.79-19.55Z"/><path fill="#ffffff" d="M655.58,92.99h26.59l.59,9.58c0,2.94,0,5.28,.19,6.45,6.07-10.56,16.22-18.76,28.94-18.76,3.13,0,5.86,.38,6.26,.58v28.54c-.4-.2-2.75-1.17-6.45-1.17-14.87,0-26.99,13.1-26.99,30.89v41.63h-29.13V92.99Z"/><path fill="#ffffff" d="M733.49,208.52c1.76,.78,6.06,1.97,11.53,1.97,12.9,0,19.55-8.61,24.83-19.75l-40.27-97.74h32.07l11.34,34.01c4.1,11.93,8.21,24.05,11.53,36.36,2.54-5.47,8.99-29.13,11.74-36.36l11.34-34.01h31.67l-37.93,96.96c-11.15,28.94-25.81,43.4-46.33,45.75-4.49,.59-8.6,.59-12.32,.19-3.9-.38-7.62-.97-9.18-1.76v-25.61Z"/></g><g><path fill="#00a883" d="M198.38,150.23c7.03-2.04,13.35-5.32,18.8-9.54,17.79-13.76,26.32-37.47,19.67-60.38l-47.55,13.79c-7.03,2.04-13.35,5.32-18.8,9.54-17.79,13.76-26.32,37.47-19.67,60.38l47.55-13.79Z"/><path fill="#00a883" d="M138.54,138.55c0-13.17-2.78-25.69-7.82-37-14.19-31.99-46.24-54.3-83.48-54.3v97.68c0,13.17,2.78,25.68,7.82,36.99,14.19,31.99,46.23,54.3,83.48,54.3v-97.67Z"/></g></g></g></g></svg></div>
+          <nav>
+            <label class="nav-item" for="t-req">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8.3 13.3-3.5-3.5 1.4-1.4 2.1 2.1 4.6-4.6 1.4 1.4-6 6z"/></svg>
+              <span>リクエスト予約</span>
+              <span class="badge">3</span>
+            </label>
+            <label class="nav-item" for="t-top">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+              <span>即時予約</span>
+            </label>
+            <div class="label" style="margin-top:24px">設定</div>
+            <label class="nav-item" for="t-terms">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+              <span>勤務条件</span>
+            </label>
+            <label class="nav-item" for="t-doctors">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zM8 11c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+              <span>医師情報</span>
+            </label>
+            <label class="nav-item" for="t-shift">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+              <span>シフト</span>
+            </label>
+            <label class="nav-item" for="t-dept">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/></svg>
+              <span>診療科</span>
+            </label>
+            <label class="nav-item" for="t-partners">
+              <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 11V5l-3-3-3 3v2H3v14h18V11h-6zm-8 8H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V9h2v2zm6 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm6 12h-2v-2h2v2zm0-4h-2v-2h2v2z"/></svg>
+              <span>連携医療機関</span>
+            </label>
+          </nav>
+        </aside>
+        <div class="main-col">
+          <header class="app-header">
+            <h1>
+              <span class="n-top">即時予約</span>
+              <span class="n-req">リクエスト予約</span>
+              <span class="n-terms">勤務条件</span>
+              <span class="n-doctors">医師情報</span>
+              <span class="n-shift">シフト</span>
+              <span class="n-dept">診療科</span>
+              <span class="n-partners">連携医療機関</span>
+            </h1>
+            <div class="account-wrap">
+              <input class="ctrl menu" type="checkbox" id="menu-tenant" />
+              <label class="account" for="menu-tenant">
+                架空総合病院
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5H7z"/></svg>
+              </label>
+              <div class="popover">
+                <span class="who">高橋 蓮</span>
+                <label for="attempt">ログアウト</label>
+              </div>
+            </div>
+          </header>
+          <div class="app-body">
+            <div class="app-content">
+              <div class="page page-top">
+                <div class="tabs">
+                  <button type="button" class="is-current">要対応</button>
+                  <button type="button">対応中</button>
+                  <button type="button">すべて</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="wide">
+                    <thead>
+                      <tr>
+                        <th>ステータス</th><th>紹介状</th><th>担当者</th><th>紹介元/患者名</th><th>予約日時</th><th>診療科/医師</th><th>登録日時</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><span class="status yellow"><i></i>要対応</span></td>
+                        <td>未登録</td>
+                        <td>未割当</td>
+                        <td>青山クリニック<span class="sub name">佐藤 花</span></td>
+                        <td>2026/11/12（木）<span class="sub">09:30〜</span></td>
+                        <td>内科<span class="sub">架空 医師</span></td>
+                        <td>2026/11/10 09:12</td>
+                      </tr>
+                      <tr>
+                        <td><span class="status blue"><i></i>対応中</span></td>
+                        <td>受領済</td>
+                        <td>高橋 蓮</td>
+                        <td>みどり医院<span class="sub name">鈴木 蓮</span></td>
+                        <td>2026/11/18（水）<span class="sub">14:00〜</span></td>
+                        <td>整形外科<span class="sub">架空 医師</span></td>
+                        <td>2026/11/09 16:40</td>
+                      </tr>
+                      <tr>
+                        <td><span class="status green"><i></i>完了</span></td>
+                        <td>受領済</td>
+                        <td>高橋 蓮</td>
+                        <td>ひかり診療所<span class="sub name">高橋 葵</span></td>
+                        <td>2026/11/06（金）<span class="sub">11:00〜</span></td>
+                        <td>消化器内科<span class="sub">架空 医師</span></td>
+                        <td>2026/11/04 08:20</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <p class="placeholder page page-other">現行の画面です。このモックでは中身を省略しています。</p>
+            </div>
+            <footer class="app-footer">
+              <nav>
+                <a href="https://medup.jp/" target="_blank" rel="noreferrer">利用規約</a>
+                <a href="https://medup.jp/" target="_blank" rel="noreferrer">プライバシーポリシー</a>
+              </nav>
+              <div class="rights">2023 MedUp, Inc. ALL RIGHTS RESERVED.</div>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
