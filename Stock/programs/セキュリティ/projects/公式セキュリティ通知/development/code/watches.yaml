@@ -1,0 +1,114 @@
+# 上段の監視リスト。系列かバージョン範囲に当たった告知だけを Slack に出す。
+watches:
+  - id: nodejs
+    product: Node.js
+    feed:
+      type: rss
+      url: https://nodejs.org/en/feed/vulnerability.xml
+    lines:
+      - series: "22"
+        version: "22.23.4"
+        repos: [medup-core-service, refery, data-customer-ops]
+      - series: "24"
+        version: "24.22.1"
+        repos: [foro-crm-devops]
+
+  - id: ruby
+    product: Ruby
+    security_only: true
+    feed:
+      type: rss
+      url: https://www.ruby-lang.org/en/feeds/news.rss
+    lines:
+      - series: "3.4"
+        version: "3.4.8"
+        repos: [foro-crm-api]
+
+  - id: rails
+    product: Ruby on Rails
+    feed:
+      type: rss
+      url: https://discuss.rubyonrails.org/c/security-announcements/9.rss
+    lines:
+      - series: "8.1"
+        version: "8.1.3.1"
+        repos: [foro-crm-api]
+
+  - id: python
+    product: Python
+    feed:
+      type: rss
+      url: https://mail.python.org/archives/list/security-announce@python.org/feed/
+    lines:
+      - series: "3.12"
+        version: "3.12.12"
+        repos: [data-management-api]
+      - series: "3.14"
+        version: "3.14"
+        repos: [medup-drive]
+      - series: "3.7"
+        version: "3.7.12"
+        repos: [redash]
+        eol: true
+
+  - id: postgresql
+    product: PostgreSQL
+    security_only: true
+    feed:
+      type: rss
+      url: https://www.postgresql.org/news.rss
+    lines:
+      - series: "18"
+        version: "18"
+        repos: [refery, medup-drive]
+      - series: "9.6"
+        version: "9.6.24"
+        repos: [redash]
+        eol: true
+
+  - id: nextjs
+    product: Next.js
+    feed:
+      type: github_advisories
+      repo: vercel/next.js
+      package: next
+    lines:
+      - version: "15.5.18"
+        repos: [refery]
+      - version: "16.4.2"
+        repos: [medup-core-service]
+      - version: "13.4.5"
+        repos: [data-customer-ops]
+        eol: true
+
+  - id: redis
+    product: Redis
+    feed:
+      type: github_advisories
+      repo: redis/redis
+      package: redis
+    lines:
+      - version: "5.0.14"
+        repos: [redash]
+        eol: true
+
+  - id: bun
+    product: Bun
+    feed:
+      type: github_advisories
+      repo: oven-sh/bun
+      package: bun
+    lines:
+      - version: "1.1.38"
+        repos: [data-customer-ops]
+        eol: true
+
+  - id: nginx
+    product: nginx
+    feed:
+      type: html_headings
+      url: https://nginx.org/en/security_advisories.html
+    lines:
+      - version: "1.9.10"
+        repos: [redash]
+        eol: true
